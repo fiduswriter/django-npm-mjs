@@ -18,32 +18,32 @@ Quick start
 
 1. Add "npm_mjs" to your INSTALLED_APPS setting like this::
 
-    INSTALLED_APPS = [
-        ...
-        'npm_mjs',
-    ]
+        INSTALLED_APPS = [
+            ...
+            'npm_mjs',
+        ]
 
 2. Define a `PROJECT_PATH` in the settings as the root folder of the project::
 
-    PROJECT_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        PROJECT_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
 3. Define a `SETTINGS_PATHS` in the settings to contain the paths of all setting files (settings.py + any local_settings.pyor similar file you may have defined)::
 
-    SETTINGS_PATHS = [os.path.dirname(__file__), ]
+        SETTINGS_PATHS = [os.path.dirname(__file__), ]
 
 3. Add the `static-transpile` folder inside the `PROJECT_PATH` to the `STATICFILES_DIRS` like this::
 
-    STATICFILES_DIRS = (
-        os.path.join(PROJECT_PATH, 'static-transpile'),
-        ...
-    )
+        STATICFILES_DIRS = (
+            os.path.join(PROJECT_PATH, 'static-transpile'),
+            ...
+        )
 
 4. Add `static-transpile` template tags to your templates to refer to JavaScript files.
 All entry files to ES2015+ modules need to have \*.mjs endings. Entries can look like this::
 
-    {% load transpile %}
-    ...
-    <script type="text/javascript" src="{% transpile-static "js/index.mjs" %}"></script>
+        {% load transpile %}
+        ...
+        <script type="text/javascript" src="{% transpile-static "js/index.mjs" %}"></script>
 
 5. Run `./manage.py transpile`.
 
