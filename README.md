@@ -12,6 +12,8 @@ This package similar to django-compressor in that it treats JavaScript files bef
 
 * The JavaScript entry files' base names do not change and an automatic optional version query is added to be able to wipe the browser cache (`/js/my_file.mjs` turns into `/js/transpile/my_file.js?v=239329884`). This way it is also possible to refer to the URL from JavaScript (for example for use with web workers).
 
+* It allows for JavaScript plugin hooks between django apps used in cases when a django project can be used both with or without a specific app, and the JavaScript from one app needs to import things from another app.
+
 
 Quick start
 -----------
