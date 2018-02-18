@@ -2,6 +2,17 @@
 A Django package to use npm.js dependencies and transpile ES2015+
 
 
+This package similar to django-compressor in that it treats JavaScript files before they are served to the user. But there are some differences:
+
+* It does not mix different JavaScript module entry files. It only bundles everything imported from one entry file. With ES2015+ there is not as much need to have lots of JavaScript files operating in the global namespace.
+
+* It allows importing from one django app in another app within the same project as if they were in the same folder similar to how static files and templates are handled by Django.
+
+* It includes handling of npm.js imports.
+
+* The JavaScript entry files' base names do not change and an automatic optional version query is added to be able to wipe the browser cache (`/js/my_file.mjs` turns into `/js/transpile/my_file.js?v=239329884`). This way it is also possible to refer to the URL from JavaScript (for example for use with web workers).
+
+
 Quick start
 -----------
 
@@ -12,11 +23,31 @@ Quick start
         'npm_mjs',
     ]
 
-2. Add "static-transpile" template tags to your templates. All entry files to ES2015+ modules need to have \*.mjs endings.
+2. Define a `PROJECT_PATH` in the settings as the root folder of the project::
 
-3. Run `./manage.py transpile`.
+    PROJECT_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
-4. Run `./manage.py runserver`. Your ES2015 modules will be served as browser compatible ES5 files.
+3. Define a `SETTINGS_PATHS` in the settings to contain the paths of all setting files (settings.py + any local_settings.pyor similar file you may have defined)::
+
+    SETTINGS_PATHS = [os.path.dirname(__file__), ]
+
+3. Add the `static-transpile` folder inside the `PROJECT_PATH` to the `STATICFILES_DIRS` like this::
+
+    STATICFILES_DIRS = (
+        os.path.join(PROJECT_PATH, 'static-transpile'),
+        ...
+    )
+
+4. Add `static-transpile` template tags to your templates to refer to JavaScript files.
+All entry files to ES2015+ modules need to have \*.mjs endings. Entries can look like this::
+
+    {% load transpile %}
+    ...
+    <script type="text/javascript" src="{% transpile-static "js/index.mjs" %}"></script>
+
+5. Run `./manage.py transpile`.
+
+6. Run `./manage.py runserver`. Your ES2015 modules will be served as browser compatible ES5 files.
 
 
 NPM.JS dependencies
