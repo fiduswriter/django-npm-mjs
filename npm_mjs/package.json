@@ -11,7 +11,9 @@
     "babel-core": "6.26.0",
     "babelify": "8.0.0",
     "browserify": "16.1.0",
-    "browserify-incremental": "3.1.1"
+    "browserify-incremental": "3.1.1",
+    "uglifyify": "4.0.5",
+    "uglify-es": "3.3.9"
   },
   "browserify": {
     "transform": [

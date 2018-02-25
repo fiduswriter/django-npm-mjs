@@ -1,4 +1,4 @@
-from subprocess import call, check_output
+import subprocess
 import os
 import shutil
 import time
@@ -93,11 +93,11 @@ class Command(BaseCommand):
         mainfiles = []
         sourcefiles = []
         for path in js_paths:
-            for mainfile in check_output(
+            for mainfile in subprocess.check_output(
                 ["find", path, "-type", "f", "-name", "*.mjs", "-print"]
             ).decode('utf-8').split("\n")[:-1]:
                 mainfiles.append(mainfile)
-            for sourcefile in check_output(
+            for sourcefile in subprocess.check_output(
                 ["find", path, "-type", "f", "-wholename", "*js"]
             ).decode('utf-8').split("\n")[:-1]:
                 if 'static/js' in sourcefile:
@@ -163,7 +163,7 @@ class Command(BaseCommand):
                     index_file.close()
 
         # Check for outdated files that should be removed
-        for existing_file in check_output(
+        for existing_file in subprocess.check_output(
             ["find", cache_path, "-type", "f"]
         ).decode('utf-8').split("\n")[:-1]:
             if existing_file not in cache_files:
@@ -178,6 +178,10 @@ class Command(BaseCommand):
             PROJECT_PATH,
             'node_modules/.bin/browserifyinc'
         )
+        uglify_path = os.path.join(
+            PROJECT_PATH,
+            'node_modules/.bin/uglifyjs'
+        )
         for mainfile in mainfiles:
             dirname = os.path.dirname(mainfile)
             basename = os.path.basename(mainfile)
@@ -188,10 +192,28 @@ class Command(BaseCommand):
             infile = os.path.join(cache_path, relative_dir, basename)
             outfile = os.path.join(out_dir, relative_dir, outfilename)
             self.stdout.write("Transpiling %s." % basename)
-            call([browserifyinc_path, "--ignore-missing",
-                  "--cachefile", cachefile, "--outfile", outfile, "-t",
-                  "babelify", infile])
-
+            browserify_process = subprocess.Popen(
+                [
+                    browserifyinc_path,
+                    "-d",
+                    "--ignore-missing",
+                    "--cachefile", cachefile,
+                    "-g", "uglifyify",
+                    "-t", "babelify",
+                    infile
+                ],
+                stdout=subprocess.PIPE
+            )
+            uglify_process = subprocess.Popen(
+                [
+                    uglify_path, "-o", outfile, "-c", "-m",
+                    "--source-map", "content=inline"
+                ],
+                stdin=browserify_process.stdout,
+                stdout=subprocess.PIPE
+            )
+            browserify_process.stdout.close()
+            uglify_process.communicate()
         end = int(round(time.time()))
         self.stdout.write(
             "Time spent transpiling: " + str(end - start) + " seconds"
