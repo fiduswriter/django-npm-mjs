@@ -9,11 +9,13 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-npm-mjs',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
     include_package_data=True,
     license='LGPL License',
-    description='A Django package to use npm.js dependencies and transpile ES2015+',
+    description=(
+        'A Django package to use npm.js dependencies and transpile ES2015+',
+    ),
     long_description=README,
     url='https://github.com/fiduswriter/django-npm-mjs',
     author='Johannes Wilm',

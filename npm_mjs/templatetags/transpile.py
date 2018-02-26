@@ -33,16 +33,37 @@ class StaticTranspileNode(StaticNode):
             )
 
 
-@register.tag('transpile-static')
-def do_transpile_static(parser, token):
+@register.tag
+def transpile_static(parser, token):
     """
     Join the given path with the STATIC_URL setting adding a version number
     and the location of the transpile folder.
     Usage::
-        {% transpile-static path [as varname] %}
+        {% transpile_static path [as varname] %}
     Examples::
-        {% transpile-static "js/index.js" %}
-        {% transpile-static variable_with_path %}
-        {% transpile-static variable_with_path as varname %}
+        {% transpile_static "js/index.js" %}
+        {% transpile_static variable_with_path %}
+        {% transpile_static variable_with_path as varname %}
     """
     return StaticTranspileNode.handle_token(parser, token)
+
+
+@register.inclusion_tag('npm_mjs/transpile_vars.html')
+def transpile_vars():
+    """
+    Add global variables to JavaScript about the location and latest version of
+    transpiled files.
+    Usage::
+        {% transpile_vars %}
+    """
+    if apps.is_installed('django.contrib.staticfiles'):
+        from django.contrib.staticfiles.storage import staticfiles_storage
+        static_base_url = staticfiles_storage.base_url
+    else:
+        static_base_url = PrefixNode.handle_simple("STATIC_URL")
+    transpile_base_url = urljoin(static_base_url, 'js/transpile/')
+    return {
+        'static_base_url': static_base_url,
+        'transpile_base_url': transpile_base_url,
+        'version': LAST_RUN
+    }

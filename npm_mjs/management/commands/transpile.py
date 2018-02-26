@@ -206,7 +206,8 @@ class Command(BaseCommand):
             )
             uglify_process = subprocess.Popen(
                 [
-                    uglify_path, "-o", outfile, "-c", "-m",
+                    uglify_path, "-o", outfile,
+                    "-c", "-m",
                     "--source-map", "content=inline"
                 ],
                 stdin=browserify_process.stdout,

@@ -40,12 +40,12 @@ Quick start
             ...
         )
 
-4. Add `static-transpile` template tags to your templates to refer to JavaScript files.
+4. Add `transpile_static` template tags to your templates to refer to JavaScript files.
 All entry files to ES2015+ modules need to have \*.mjs endings. Entries can look like this::
 
         {% load transpile %}
         ...
-        <script type="text/javascript" src="{% transpile-static "js/index.mjs" %}"></script>
+        <script type="text/javascript" src="{% transpile_static "js/index.mjs" %}"></script>
 
 5. Run `./manage.py transpile`.
 
