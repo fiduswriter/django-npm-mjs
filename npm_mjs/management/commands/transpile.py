@@ -4,9 +4,12 @@ import shutil
 import time
 import pickle
 
+from django.utils.six.moves.urllib.parse import urljoin
 from django.core.management.base import BaseCommand
 from django.contrib.staticfiles import finders
 from django.conf import settings
+from django.templatetags.static import PrefixNode
+from django.apps import apps
 
 from .npm_install import install_npm
 from npm_mjs import signals
@@ -76,7 +79,15 @@ class Command(BaseCommand):
                 return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path)
-
+        LAST_RUN = start
+        with open(
+            os.path.join(
+                PROJECT_PATH,
+                ".transpile-time"
+            ),
+            'wb'
+        ) as f:
+            pickle.dump(LAST_RUN, f)
         # Create a static output dir
         out_dir = os.path.join(transpile_path, "js/transpile")
         os.makedirs(out_dir)
@@ -174,6 +185,12 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write("Removing %s" % existing_file)
                     os.remove(existing_file)
+        if apps.is_installed('django.contrib.staticfiles'):
+            from django.contrib.staticfiles.storage import staticfiles_storage
+            static_base_url = staticfiles_storage.base_url
+        else:
+            static_base_url = PrefixNode.handle_simple("STATIC_URL")
+        transpile_base_url = urljoin(static_base_url, 'js/transpile/')
         browserifyinc_path = os.path.join(
             PROJECT_PATH,
             'node_modules/.bin/browserifyinc'
@@ -200,6 +217,18 @@ class Command(BaseCommand):
                     "--cachefile", cachefile,
                     "-g", "uglifyify",
                     "-t", "babelify",
+                    "-t", "[",
+                    "streplacify",
+                    "--replace",
+                    "{\"from\":\"\\\\$StaticUrls.base\\\\$\", " +
+                    "\"to\":\"" + static_base_url + "\"}",
+                    "--replace",
+                    "{\"from\":\"\\\\$StaticUrls.transpile.base\\\\$\", " +
+                    "\"to\":\"" + transpile_base_url + "\"}",
+                    "--replace",
+                    "{\"from\":\"\\\\$StaticUrls.transpile.version\\\\$\", " +
+                    "\"to\":" + str(LAST_RUN) + "}",
+                    "]",
                     infile
                 ],
                 stdout=subprocess.PIPE
@@ -219,14 +248,4 @@ class Command(BaseCommand):
         self.stdout.write(
             "Time spent transpiling: " + str(end - start) + " seconds"
         )
-
-        LAST_RUN = end
-        with open(
-            os.path.join(
-                PROJECT_PATH,
-                ".transpile-time"
-            ),
-            'wb'
-        ) as f:
-            pickle.dump(LAST_RUN, f)
         signals.post_transpile.send(sender=None)

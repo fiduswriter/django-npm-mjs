@@ -1,6 +1,7 @@
 # django-npm-mjs
 A Django package to use npm.js dependencies and transpile ES2015+
 
+This package is used by Fidus Writer to bundle JavaScript. We try to keep it as generic as possible, so if there is something that seems very odd and specific to Fidus Writer, it is likely just an oversight from us. Please contact us and we'll see what we can do about it.
 
 This package similar to django-compressor in that it treats JavaScript files before they are served to the user. But there are some differences:
 
@@ -62,3 +63,73 @@ NPM.JS dependencies
 3. Run `./manage.py transpile`.
 
 4. Run `./manage.py runserver`.
+
+Referring to static files from JavaScript
+-----------
+
+There is two ways of adding URLs for static files as well as a timestamped version number of the last transpile run to JavaScript:
+
+Adding static url variables with a template tag
+------
+1. Add `static_urls_js` template tags to your templates like this::
+
+        {% load transpile %}
+        ...
+        {% static_urls_js %}
+
+2. In your JavaScript sources, you can now use three variables to refer to urls and the version.
+
+The base url of all static files::
+
+        StaticUrls.base
+
+For example::
+
+        let userAvatar = `${StaticUrls.base}img/default_avatar.png`
+
+The base url of transpiled JavaScript files::
+
+        StaticUrls.transpile.base
+
+For example::
+
+        let downloadJS = `${StaticUrls.transpile.base}download.js` // Transpiled version of download.mjs
+
+The version string from the last transpile run::
+
+        StaticUrls.transpile.version
+
+For example::
+
+        let downloadJS = `${StaticUrls.transpile.base}download.js?v=${StaticUrls.transpile.version}` // Latest version of transpiled version of download.mjs
+
+
+Adding static url variables by string replacement
+------
+This changes the strings directly in the produced JS files. The is useful if the files are directly consumed and no template is called. The variable names are the same. There is just a $-character before and after it.
+
+1. In your JavaScript sources, you can now use three variables to refer to urls and the version.
+
+The base url of all static files::
+
+        $StaticUrls.base$
+
+For example::
+
+        let userAvatar = `${$StaticUrls.base$}img/default_avatar.png`
+
+The base url of transpiled JavaScript files::
+
+        $StaticUrls.transpile.base$
+
+For example::
+
+        let downloadJS = `${$StaticUrls.transpile.base$}download.js` // Transpiled version of download.mjs
+
+The version string from the last transpile run::
+
+        $StaticUrls.transpile.version$
+
+For example::
+
+        let downloadJS = `${$StaticUrls.transpile.base$}download.js?v=${$StaticUrls.transpile.version$}` // Latest version of transpiled version of download.mjs
