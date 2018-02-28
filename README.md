@@ -41,16 +41,20 @@ Quick start
             ...
         )
 
-4. Add `transpile_static` template tags to your templates to refer to JavaScript files.
+4. Load transpile, and use `static` template tags to your templates to refer to JavaScript files.
 All entry files to ES2015+ modules need to have \*.mjs endings. Entries can look like this::
 
         {% load transpile %}
         ...
-        <script type="text/javascript" src="{% transpile_static "js/index.mjs" %}"></script>
+        <script type="text/javascript" src="{% static "js/index.mjs" %}"></script>
+
+You can continue to load other resources such as CSS files as before using the `static` template tag::
+
+        <link type="text/css" rel="stylesheet" href="{% static "css/fonts.css" %}" />
 
 5. Run `./manage.py transpile`.
 
-6. Run `./manage.py runserver`. Your ES2015 modules will be served as browser compatible ES5 files.
+6. Run `./manage.py runserver`. Your ES2015+ modules will be served as browser compatible JS files and all static files will have a versioned ending so that you can set your static server to let browsers cache static files indefinitely.
 
 
 NPM.JS dependencies

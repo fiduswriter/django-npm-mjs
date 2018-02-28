@@ -34,16 +34,17 @@ class StaticTranspileNode(StaticNode):
 
 
 @register.tag
-def transpile_static(parser, token):
+def static(parser, token):
     """
     Join the given path with the STATIC_URL setting adding a version number
     and the location of the transpile folder.
     Usage::
-        {% transpile_static path [as varname] %}
+        {% static path [as varname] %}
     Examples::
-        {% transpile_static "js/index.js" %}
-        {% transpile_static variable_with_path %}
-        {% transpile_static variable_with_path as varname %}
+        {% static "js/index.mjs" %} # turns into js/transpile/index.js?v=213...
+        {% static "css/style.css" %} # turns into css/style.css?v=213...
+        {% static variable_with_path %}
+        {% static variable_with_path as varname %}
     """
     return StaticTranspileNode.handle_token(parser, token)
 
