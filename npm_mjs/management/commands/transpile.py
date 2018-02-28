@@ -141,7 +141,7 @@ class Command(BaseCommand):
             elif os.path.getmtime(outfile) < os.path.getmtime(sourcefile):
                 shutil.copyfile(sourcefile, outfile)
             # Check for plugin connectors
-            if relative_path[:16] == 'modules/plugins/':
+            if relative_path[:8] == 'plugins/':
                 if dirname not in plugin_dirs:
                     plugin_dirs[dirname] = []
                 module_name = os.path.splitext(
