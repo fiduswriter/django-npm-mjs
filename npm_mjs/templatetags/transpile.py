@@ -23,13 +23,16 @@ class StaticTranspileNode(StaticNode):
     def handle_simple(cls, path):
         if apps.is_installed('django.contrib.staticfiles'):
             from django.contrib.staticfiles.storage import staticfiles_storage
-            return staticfiles_storage.url(path) + '?v=%s' % LAST_RUN
+            return (
+                staticfiles_storage.url(path) +
+                '?v=%s' % LAST_RUN['version']
+            )
         else:
             return (
                 urljoin(
                     PrefixNode.handle_simple("STATIC_URL"),
                     quote(path)
-                ) + '?v=%s' % LAST_RUN
+                ) + '?v=%s' % LAST_RUN['version']
             )
 
 
@@ -66,5 +69,5 @@ def static_urls_js():
     return {
         'static_base_url': static_base_url,
         'transpile_base_url': transpile_base_url,
-        'version': LAST_RUN
+        'version': LAST_RUN['version']
     }

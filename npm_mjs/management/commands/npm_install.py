@@ -25,16 +25,20 @@ transpile_time_path = os.path.join(
     ".transpile-time"
 )
 
+LAST_RUN = {
+    'version': 0
+}
+
 try:
     with open(
         transpile_time_path,
         'rb'
     ) as f:
-        LAST_RUN = pickle.load(f)
+        LAST_RUN['version'] = pickle.load(f)
 except EOFError:
-    LAST_RUN = 0
+    pass
 except IOError:
-    LAST_RUN = 0
+    pass
 
 
 def install_npm():
@@ -65,7 +69,7 @@ def install_npm():
         "node_modules"
     )
     if (
-        settings_change > LAST_RUN or
+        settings_change > LAST_RUN['version'] or
         app_package_change > package_change
     ):
         if os.path.exists(node_modules_path):

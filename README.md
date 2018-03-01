@@ -54,7 +54,7 @@ You can continue to load other resources such as CSS files as before using the `
 
 5. Run `./manage.py transpile`.
 
-6. Run `./manage.py runserver`. Your ES2015+ modules will be served as browser compatible JS files and all static files will have a versioned ending so that you can set your static server to let browsers cache static files indefinitely.
+6. Run `./manage.py runserver`. Your ES2015+ modules will be served as browser compatible JS files and all static files will have a versioned ending so that you can set your static server to let browsers cache static files indefinitely as long as DEBUG is set to False.
 
 
 NPM.JS dependencies

@@ -27,16 +27,20 @@ transpile_time_path = os.path.join(
     ".transpile-time"
 )
 
+LAST_RUN = {
+    'version': 0
+}
+
 try:
     with open(
         transpile_time_path,
         'rb'
     ) as f:
-        LAST_RUN = pickle.load(f)
+        LAST_RUN['version'] = pickle.load(f)
 except EOFError:
-    LAST_RUN = 0
+    pass
 except IOError:
-    LAST_RUN = 0
+    pass
 
 
 class Command(BaseCommand):
@@ -79,7 +83,7 @@ class Command(BaseCommand):
                 return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path)
-        LAST_RUN = start
+        LAST_RUN['version'] = start
         with open(
             os.path.join(
                 PROJECT_PATH,
@@ -87,7 +91,7 @@ class Command(BaseCommand):
             ),
             'wb'
         ) as f:
-            pickle.dump(LAST_RUN, f)
+            pickle.dump(LAST_RUN['version'], f)
         # Create a static output dir
         out_dir = os.path.join(transpile_path, "js/transpile")
         os.makedirs(out_dir)
@@ -191,10 +195,16 @@ class Command(BaseCommand):
         else:
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
         transpile_base_url = urljoin(static_base_url, 'js/transpile/')
-        browserifyinc_path = os.path.join(
-            PROJECT_PATH,
-            'node_modules/.bin/browserifyinc'
-        )
+        if settings.DEBUG:
+            browserify_path = os.path.join(
+                PROJECT_PATH,
+                'node_modules/.bin/browserifyinc'
+            )
+        else:
+            browserify_path = os.path.join(
+                PROJECT_PATH,
+                'node_modules/.bin/browserify'
+            )
         uglify_path = os.path.join(
             PROJECT_PATH,
             'node_modules/.bin/uglifyjs'
@@ -203,47 +213,58 @@ class Command(BaseCommand):
             dirname = os.path.dirname(mainfile)
             basename = os.path.basename(mainfile)
             outfilename = basename.split('.')[0] + ".js"
-            cachefile = os.path.join(
-                cache_path, basename.split('.')[0] + ".cache.json")
             relative_dir = dirname.split('static/js')[1]
             infile = os.path.join(cache_path, relative_dir, basename)
             outfile = os.path.join(out_dir, relative_dir, outfilename)
             self.stdout.write("Transpiling %s." % basename)
-            browserify_process = subprocess.Popen(
-                [
-                    browserifyinc_path,
-                    "-d",
-                    "--ignore-missing",
-                    "--cachefile", cachefile,
-                    "-g", "uglifyify",
-                    "-t", "babelify",
-                    "-t", "[",
-                    "streplacify",
-                    "--replace",
-                    "{\"from\":\"\\\\$StaticUrls.base\\\\$\", " +
-                    "\"to\":\"" + static_base_url + "\"}",
-                    "--replace",
-                    "{\"from\":\"\\\\$StaticUrls.transpile.base\\\\$\", " +
-                    "\"to\":\"" + transpile_base_url + "\"}",
-                    "--replace",
-                    "{\"from\":\"\\\\$StaticUrls.transpile.version\\\\$\", " +
-                    "\"to\":" + str(LAST_RUN) + "}",
-                    "]",
-                    infile
-                ],
-                stdout=subprocess.PIPE
-            )
-            uglify_process = subprocess.Popen(
-                [
-                    uglify_path, "-o", outfile,
-                    "-c", "-m",
-                    "--source-map", "content=inline"
-                ],
-                stdin=browserify_process.stdout,
-                stdout=subprocess.PIPE
-            )
-            browserify_process.stdout.close()
-            uglify_process.communicate()
+            browserify_call = [
+                browserify_path,
+                infile,
+                "-d",
+                "--ignore-missing",
+                "-t", "babelify",
+                "-t", "[",
+                "streplacify",
+                "--replace",
+                "{\"from\":\"\\\\$StaticUrls.base\\\\$\", " +
+                "\"to\":\"'" + static_base_url + "'\"}",
+                "--replace",
+                "{\"from\":\"\\\\$StaticUrls.transpile.base\\\\$\", " +
+                "\"to\":\"'" + transpile_base_url + "'\"}",
+                "--replace",
+                "{\"from\":\"\\\\$StaticUrls.transpile.version\\\\$\", " +
+                "\"to\":" + str(LAST_RUN['version']) + "}",
+                "]"
+            ]
+            if settings.DEBUG:
+                cachefile = os.path.join(
+                    cache_path, basename.split('.')[0] + ".cache.json")
+                browserify_process = subprocess.Popen(
+                    browserify_call + [
+                        "--cachefile", cachefile,
+                        "-o", outfile
+                    ],
+                    stdout=subprocess.PIPE
+                )
+                browserify_process.wait()
+            else:
+                browserify_process = subprocess.Popen(
+                    browserify_call + [
+                        "-g", "uglifyify"
+                    ],
+                    stdout=subprocess.PIPE
+                )
+                uglify_process = subprocess.Popen(
+                    [
+                        uglify_path, "-o", outfile,
+                        "-c", "-m",
+                        "--source-map", "content=inline"
+                    ],
+                    stdin=browserify_process.stdout,
+                    stdout=subprocess.PIPE
+                )
+                browserify_process.stdout.close()
+                uglify_process.communicate()
         end = int(round(time.time()))
         self.stdout.write(
             "Time spent transpiling: " + str(end - start) + " seconds"
