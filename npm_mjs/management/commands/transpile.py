@@ -220,7 +220,6 @@ class Command(BaseCommand):
             browserify_call = [
                 browserify_path,
                 infile,
-                "-d",
                 "--ignore-missing",
                 "-t", "babelify",
                 "-t", "[",
@@ -241,6 +240,7 @@ class Command(BaseCommand):
                     cache_path, basename.split('.')[0] + ".cache.json")
                 browserify_process = subprocess.Popen(
                     browserify_call + [
+                        "-d",
                         "--cachefile", cachefile,
                         "-o", outfile
                     ],
@@ -250,6 +250,7 @@ class Command(BaseCommand):
             else:
                 browserify_process = subprocess.Popen(
                     browserify_call + [
+                        "-p", "common-shakeify",
                         "-g", "uglifyify"
                     ],
                     stdout=subprocess.PIPE
@@ -258,7 +259,7 @@ class Command(BaseCommand):
                     [
                         uglify_path, "-o", outfile,
                         "-c", "-m",
-                        "--source-map", "content=inline"
+                        #"--source-map", "content=inline"
                     ],
                     stdin=browserify_process.stdout,
                     stdout=subprocess.PIPE

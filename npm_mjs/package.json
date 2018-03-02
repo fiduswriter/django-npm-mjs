@@ -14,7 +14,8 @@
     "browserify-incremental": "3.1.1",
     "streplacify": "1.0.0",
     "uglifyify": "4.0.5",
-    "uglify-es": "3.3.9"
+    "uglify-es": "3.3.9",
+    "common-shakeify": "0.4.5"
   },
   "browserify": {
     "transform": [
