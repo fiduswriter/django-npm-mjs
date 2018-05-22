@@ -12,7 +12,6 @@
     "babelify": "8.0.x",
     "browserify": "16.2.x",
     "browserify-incremental": "3.1.x",
-    "streplacify": "1.0.x",
     "uglifyify": "5.0.x",
     "uglify-es": "3.3.x",
     "common-shakeify": "0.4.x"

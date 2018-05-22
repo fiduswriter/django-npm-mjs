@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import os
 import json
 from json_minify import json_minify

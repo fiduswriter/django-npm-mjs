@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+from io import open
+
 import subprocess
 import os
 import shutil
@@ -47,8 +50,21 @@ class Command(BaseCommand):
     help = ('Transpile ES6 JavaScript to ES5 JavaScript + include NPM '
             'dependencies')
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            dest='force',
+            default=False,
+            help='Force transpile even if no change is detected.',
+        )
+
     def handle(self, *args, **options):
         global LAST_RUN
+        if options["force"]:
+            force = True
+        else:
+            force = False
         start = int(round(time.time()))
         npm_install = install_npm()
         self.stdout.write("Transpiling...")
@@ -77,9 +93,10 @@ class Command(BaseCommand):
                 os.path.commonprefix(
                     [newest_file, transpile_path]
                 ) == transpile_path and
-                not npm_install
+                not npm_install and
+                not force
             ):
-                # Transpile not needed as nothing has changed
+                # Transpile not needed as nothing has changed and not forced
                 return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path)
@@ -221,39 +238,23 @@ class Command(BaseCommand):
                 browserify_path,
                 infile,
                 "--ignore-missing",
-                "-t", "babelify",
-                "-t", "[",
-                "streplacify",
-                "--replace",
-                "{\"from\":\"\\\\$StaticUrls.base\\\\$\", " +
-                "\"to\":\"'" + static_base_url + "'\"}",
-                "--replace",
-                "{\"from\":\"\\\\$StaticUrls.transpile.base\\\\$\", " +
-                "\"to\":\"'" + transpile_base_url + "'\"}",
-                "--replace",
-                "{\"from\":\"\\\\$StaticUrls.transpile.version\\\\$\", " +
-                "\"to\":" + str(LAST_RUN['version']) + "}",
-                "]"
+                "-t", "babelify"
             ]
             if settings.DEBUG:
                 cachefile = os.path.join(
                     cache_path, basename.split('.')[0] + ".cache.json")
-                browserify_process = subprocess.Popen(
+                transpile_output = subprocess.check_output(
                     browserify_call + [
                         "-d",
-                        "--cachefile", cachefile,
-                        "-o", outfile
-                    ],
-                    stdout=subprocess.PIPE
+                        "--cachefile", cachefile
+                    ]
                 )
-                browserify_process.wait()
             else:
-                browserify_process = subprocess.Popen(
+                browserify_output = subprocess.check_output(
                     browserify_call + [
                         "-p", "common-shakeify",
                         "-g", "uglifyify"
-                    ],
-                    stdout=subprocess.PIPE
+                    ]
                 )
                 uglify_process = subprocess.Popen(
                     [
@@ -261,11 +262,25 @@ class Command(BaseCommand):
                         "-c", "-m",
                         #"--source-map", "content=inline"
                     ],
-                    stdin=browserify_process.stdout,
+                    stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE
                 )
-                browserify_process.stdout.close()
-                uglify_process.communicate()
+                transpile_output, error = uglify_process.communicate(
+                    browserify_output
+                )
+
+            file_output = transpile_output.decode('utf-8').replace(
+                "$StaticUrls.base$", "'%s'" % static_base_url
+            ).replace(
+                "$StaticUrls.transpile.base$", "'%s'" % transpile_base_url
+            ).replace(
+                "$StaticUrls.transpile.version$",
+                "'%s'" % str(LAST_RUN['version'])
+            )
+            with open(outfile, 'w', encoding="utf-8") as f:
+                f.write(
+                    file_output
+                )
         end = int(round(time.time()))
         self.stdout.write(
             "Time spent transpiling: " + str(end - start) + " seconds"
