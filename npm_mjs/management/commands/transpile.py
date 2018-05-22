@@ -258,9 +258,8 @@ class Command(BaseCommand):
                 )
                 uglify_process = subprocess.Popen(
                     [
-                        uglify_path, "-o", outfile,
-                        "-c", "-m",
-                        #"--source-map", "content=inline"
+                        uglify_path, "-c", "-m",
+                        # "--source-map", "content=inline"
                     ],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE
@@ -268,7 +267,6 @@ class Command(BaseCommand):
                 transpile_output, error = uglify_process.communicate(
                     browserify_output
                 )
-
             file_output = transpile_output.decode('utf-8').replace(
                 "$StaticUrls.base$", "'%s'" % static_base_url
             ).replace(
