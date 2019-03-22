@@ -27,7 +27,7 @@ def deep_merge_dicts(old_dict, merge_dict, scripts=False):
                 # In the scripts section, allow adding to hooks such as
                 # "preinstall" and "postinstall"
                 if scripts and key in old_dict:
-                    old_dict[key] += ' & %s' % merge_dict[key]
+                    old_dict[key] += ' && %s' % merge_dict[key]
                 else:
                     old_dict[key] = merge_dict[key]
         else:
