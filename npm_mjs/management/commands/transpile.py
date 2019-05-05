@@ -1,6 +1,7 @@
 from io import open
 
 import subprocess
+from subprocess import call
 import os
 import shutil
 import time
@@ -24,9 +25,11 @@ else:
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
 
-transpile_time_path = os.path.join(
-    PROJECT_PATH,
-    ".transpile-time"
+TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
+
+TRANSPILE_TIME_PATH = os.path.join(
+    TRANSPILE_CACHE_PATH,
+    "time"
 )
 
 LAST_RUN = {
@@ -35,7 +38,7 @@ LAST_RUN = {
 
 try:
     with open(
-        transpile_time_path,
+        TRANSPILE_TIME_PATH,
         'rb'
     ) as f:
         LAST_RUN['version'] = pickle.load(f)
@@ -44,9 +47,22 @@ except EOFError:
 except IOError:
     pass
 
+WEBPACK_CONFIG_JS_PATH = os.path.join(
+    TRANSPILE_CACHE_PATH,
+    "webpack.config.js"
+)
+
+OLD_WEBPACK_CONFIG_JS = ''
+
+try:
+    with open(WEBPACK_CONFIG_JS_PATH, 'r') as file:
+        OLD_WEBPACK_CONFIG_JS = file.read()
+except IOError:
+    pass
+
 
 class Command(BaseCommand):
-    help = ('Transpile ES6 JavaScript to ES5 JavaScript + include NPM '
+    help = ('Transpile ES2015+ JavaScript to ES5 JavaScript + include NPM '
             'dependencies')
 
     def add_arguments(self, parser):
@@ -100,16 +116,15 @@ class Command(BaseCommand):
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path)
         LAST_RUN['version'] = start
+        if not os.path.exists(TRANSPILE_CACHE_PATH):
+            os.makedirs(TRANSPILE_CACHE_PATH)
         with open(
-            os.path.join(
-                PROJECT_PATH,
-                ".transpile-time"
-            ),
+            TRANSPILE_TIME_PATH,
             'wb'
         ) as f:
             pickle.dump(LAST_RUN['version'], f)
         # Create a static output dir
-        out_dir = os.path.join(transpile_path, "js/transpile")
+        out_dir = os.path.join(transpile_path, "js/transpile/")
         os.makedirs(out_dir)
         with open(os.path.join(transpile_path, "README.txt"), 'w') as f:
             f.write(
@@ -137,9 +152,23 @@ class Command(BaseCommand):
         # ./manage.py collectstatic).
         # This allows for the modules to import from oneanother, across Django
         # Apps.
-        # Create a cache dir for collecting JavaScript files
-
-        cache_path = os.path.join(PROJECT_PATH, ".transpile-cache")
+        #
+        # Add a babel configuration file to transpile folder if it does not
+        # yet exist.
+        babelrc_path = os.path.join(TRANSPILE_CACHE_PATH, ".babelrc")
+        if not os.path.exists(babelrc_path):
+            shutil.copyfile(
+                os.path.join(
+                    os.path.dirname(
+                        os.path.realpath(
+                            __file__
+                        )
+                    ),
+                    '../../.babelrc'
+                ),
+                os.path.join(TRANSPILE_CACHE_PATH, '.babelrc')
+            )
+        cache_path = os.path.join(TRANSPILE_CACHE_PATH, "js/")
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
         # Note all cache files so that we can remove outdated files that no
@@ -198,86 +227,59 @@ class Command(BaseCommand):
             ["find", cache_path, "-type", "f"]
         ).decode('utf-8').split("\n")[:-1]:
             if existing_file not in cache_files:
-                if existing_file[-10:] == "cache.json":
-                    if not existing_file[:-10] + "mjs" in cache_files:
-                        self.stdout.write("Removing %s" % existing_file)
-                        os.remove(existing_file)
-                else:
-                    self.stdout.write("Removing %s" % existing_file)
-                    os.remove(existing_file)
+                self.stdout.write("Removing %s" % existing_file)
+                os.remove(existing_file)
         if apps.is_installed('django.contrib.staticfiles'):
             from django.contrib.staticfiles.storage import staticfiles_storage
             static_base_url = staticfiles_storage.base_url
         else:
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
         transpile_base_url = urljoin(static_base_url, 'js/transpile/')
+
+        webpack_config_js = 'module.exports = {\n'
         if settings.DEBUG:
-            browserify_path = os.path.join(
-                PROJECT_PATH,
-                'node_modules/.bin/browserifyinc'
-            )
+            mode = 'development'
         else:
-            browserify_path = os.path.join(
-                PROJECT_PATH,
-                'node_modules/.bin/browserify'
-            )
-        uglify_path = os.path.join(
-            PROJECT_PATH,
-            'node_modules/.bin/uglifyjs'
+            mode = 'production'
+        webpack_config_js += '  mode: "{}",\n'.format(mode)
+        webpack_config_js += '  module: {\n'
+        webpack_config_js += '    rules: [\n'
+        webpack_config_js += '      {\n'
+        webpack_config_js += '        test: /\\.(js|mjs)$/,\n'
+        webpack_config_js += '        use: {\n'
+        webpack_config_js += '          loader: "babel-loader"\n'
+        webpack_config_js += '        }\n'
+        webpack_config_js += '      }\n'
+        webpack_config_js += '    ]\n'
+        webpack_config_js += '  },\n'
+        webpack_config_js += '  output: {\n'
+        webpack_config_js += '    path: "{}",\n'.format(out_dir)
+        webpack_config_js += '    publicPath: "{}",\n'.format(
+            transpile_base_url
         )
+        webpack_config_js += '  },\n'
+        webpack_config_js += '  entry: {\n'
         for mainfile in mainfiles:
-            dirname = os.path.dirname(mainfile)
             basename = os.path.basename(mainfile)
-            outfilename = basename.split('.')[0] + ".js"
-            relative_dir = dirname.split('static/js')[1]
-            infile = os.path.join(cache_path, relative_dir, basename)
-            outfile = os.path.join(out_dir, relative_dir, outfilename)
-            self.stdout.write("Transpiling %s." % basename)
-            browserify_call = [
-                browserify_path,
-                infile,
-                "--ignore-missing",
-                "-t", "babelify"
-            ]
-            if settings.DEBUG:
-                cachefile = os.path.join(
-                    cache_path, basename.split('.')[0] + ".cache.json")
-                transpile_output = subprocess.check_output(
-                    browserify_call + [
-                        "-d",
-                        "--cachefile", cachefile
-                    ]
-                )
-            else:
-                browserify_output = subprocess.check_output(
-                    browserify_call + [
-                        "-p", "common-shakeify",
-                        "-g", "uglifyify"
-                    ]
-                )
-                uglify_process = subprocess.Popen(
-                    [
-                        uglify_path, "-c", "-m",
-                        # "--source-map", "content=inline"
-                    ],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE
-                )
-                transpile_output, error = uglify_process.communicate(
-                    browserify_output
-                )
-            file_output = transpile_output.decode('utf-8').replace(
-                "$StaticUrls.base$", "'%s'" % static_base_url
-            ).replace(
-                "$StaticUrls.transpile.base$", "'%s'" % transpile_base_url
-            ).replace(
-                "$StaticUrls.transpile.version$",
-                "'%s'" % str(LAST_RUN['version'])
+            modulename = basename.split('.')[0]
+            file_path = os.path.join(cache_path, basename)
+            webpack_config_js += '    {}: "{}",\n'.format(
+                modulename,
+                file_path
             )
-            with open(outfile, 'w', encoding="utf-8") as f:
-                f.write(
-                    file_output
-                )
+        webpack_config_js += '  }\n'
+        webpack_config_js += '}\n'
+
+        if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
+            with open(WEBPACK_CONFIG_JS_PATH, 'w') as f:
+                f.write(webpack_config_js)
+        env = os.environ.copy()
+        env['TRANSPILE_VERSION'] = str(LAST_RUN['version'])
+        call(
+            ['./node_modules/.bin/webpack'],
+            cwd=TRANSPILE_CACHE_PATH,
+            env=env
+        )
         end = int(round(time.time()))
         self.stdout.write(
             "Time spent transpiling: " + str(end - start) + " seconds"

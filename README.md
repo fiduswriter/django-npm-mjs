@@ -71,72 +71,13 @@ NPM.JS dependencies
 
 4. Run `./manage.py runserver`.
 
-Referring to static files from JavaScript
------------
-
-There is two ways of adding URLs for static files as well as a timestamped version number of the last transpile run to JavaScript:
-
-Adding static url variables with a template tag
+Referring to the transpile version within JavaScript sources
 ------
-1. Add `static_urls_js` template tags to your templates like this::
 
-        {% load transpile %}
-        ...
-        {% static_urls_js %}
+In your JavaScript sources, you can refer to the version string of the last transpile run like this::
 
-2. In your JavaScript sources, you can now use three variables to refer to urls and the version.
-
-The base url of all static files::
-
-        StaticUrls.base
+        process.env.TRANSPILE_VERSION
 
 For example::
 
-        let userAvatar = `${StaticUrls.base}img/default_avatar.png`
-
-The base url of transpiled JavaScript files::
-
-        StaticUrls.transpile.base
-
-For example::
-
-        let downloadJS = `${StaticUrls.transpile.base}download.js` // Transpiled version of download.mjs
-
-The version string from the last transpile run::
-
-        StaticUrls.transpile.version
-
-For example::
-
-        let downloadJS = `${StaticUrls.transpile.base}download.js?v=${StaticUrls.transpile.version}` // Latest version of transpiled version of download.mjs
-
-
-Adding static url variables by string replacement
-------
-This changes the strings directly in the produced JS files. The is useful if the files are directly consumed and no template is called. The variable names are the same. There is just a $-character before and after it.
-
-1. In your JavaScript sources, you can now use three variables to refer to urls and the version.
-
-The base url of all static files::
-
-        $StaticUrls.base$
-
-For example::
-
-        let userAvatar = `${$StaticUrls.base$}img/default_avatar.png`
-
-The base url of transpiled JavaScript files::
-
-        $StaticUrls.transpile.base$
-
-For example::
-
-        let downloadJS = `${$StaticUrls.transpile.base$}download.js` // Transpiled version of download.mjs
-
-The version string from the last transpile run::
-
-        $StaticUrls.transpile.version$
-
-For example::
-
-        let downloadJS = `${$StaticUrls.transpile.base$}download.js?v=${$StaticUrls.transpile.version$}` // Latest version of transpiled version of download.mjs
+        let downloadJS = `download.js?v=${process.env.TRANSPILE_VERSION}` // Latest version of transpiled version of download.mjs

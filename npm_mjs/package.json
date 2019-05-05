@@ -3,36 +3,16 @@
 // are allowed in this file.
 {
   "description": "Install dependencies for ES6 transpilation",
-  "author": "Johannes Wilm",
-  "license": "AGPL",
   "private": true,
   "dependencies": {
-    "@babel/preset-env": "7.2.x",
-    "@babel/core": "7.2.x",
-    "babelify": "10.0.x",
-    "browserify": "16.2.x",
-    "browserify-incremental": "3.1.x",
-    "uglifyify": "5.0.x",
-    "uglify-es": "3.3.x",
-    "common-shakeify": "0.5.x"
+    "@babel/preset-env": "7.4.x",
+    "@babel/core": "7.4.x",
+    "babel-loader": "8.0.x",
+    "webpack": "4.30.x",
+    "webpack-cli": "3.3.x"
   },
-  "browserify": {
-    "transform": [
-      [
-        "babelify",
-        {
-          "presets": [
-            [
-              "@babel/preset-env",
-              {
-                "targets": "> 0.25%, not dead"
-              }
-            ]
-          ],
-          "compact": false,
-          "extensions": [".mjs", ".js"]
-        }
-      ]
-    ]
+  "scripts": {
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development"
   }
 }

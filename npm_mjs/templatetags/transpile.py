@@ -48,24 +48,3 @@ def static(parser, token):
         {% static variable_with_path as varname %}
     """
     return StaticTranspileNode.handle_token(parser, token)
-
-
-@register.inclusion_tag('npm_mjs/static_urls_js.html')
-def static_urls_js():
-    """
-    Add global variables to JavaScript about the location and latest version of
-    transpiled files.
-    Usage::
-        {% static_urls_js %}
-    """
-    if apps.is_installed('django.contrib.staticfiles'):
-        from django.contrib.staticfiles.storage import staticfiles_storage
-        static_base_url = staticfiles_storage.base_url
-    else:
-        static_base_url = PrefixNode.handle_simple("STATIC_URL")
-    transpile_base_url = urljoin(static_base_url, 'js/transpile/')
-    return {
-        'static_base_url': static_base_url,
-        'transpile_base_url': transpile_base_url,
-        'version': LAST_RUN['version']
-    }

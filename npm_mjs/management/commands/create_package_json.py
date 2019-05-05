@@ -11,6 +11,8 @@ if settings.PROJECT_PATH:
 else:
     PROJECT_PATH = "./"
 
+TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
+
 
 def deep_merge_dicts(old_dict, merge_dict, scripts=False):
     for key in merge_dict:
@@ -48,6 +50,8 @@ class Command(BaseCommand):
             except IOError:
                 continue
             deep_merge_dicts(package, data)
-        package_path = os.path.join(PROJECT_PATH, 'package.json')
+        if not os.path.exists(TRANSPILE_CACHE_PATH):
+            os.makedirs(TRANSPILE_CACHE_PATH)
+        package_path = os.path.join(TRANSPILE_CACHE_PATH, 'package.json')
         with open(package_path, 'w') as outfile:
             json.dump(package, outfile)

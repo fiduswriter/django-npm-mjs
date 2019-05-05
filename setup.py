@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-npm-mjs',
-    version='0.7.4',
+    version='1.0.0',
     packages=find_packages(),
     include_package_data=True,
     license='LGPL License',
@@ -20,7 +20,7 @@ setup(
     url='https://github.com/fiduswriter/django-npm-mjs',
     author='Johannes Wilm',
     author_email='johannes@fiduswriter.org',
-    install_requires=['Django >= 1.11',
+    install_requires=['Django >= 2.2',
                       'JSON_minify == 0.3.0'],
     classifiers=[
         'Environment :: Web Environment',

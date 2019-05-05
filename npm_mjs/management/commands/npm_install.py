@@ -20,9 +20,11 @@ if settings.PROJECT_PATH:
 else:
     PROJECT_PATH = "./"
 
-transpile_time_path = os.path.join(
-    PROJECT_PATH,
-    ".transpile-time"
+TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
+
+TRANSPILE_TIME_PATH = os.path.join(
+    TRANSPILE_CACHE_PATH,
+    "time"
 )
 
 LAST_RUN = {
@@ -31,7 +33,7 @@ LAST_RUN = {
 
 try:
     with open(
-        transpile_time_path,
+        TRANSPILE_TIME_PATH,
         'rb'
     ) as f:
         LAST_RUN['version'] = pickle.load(f)
@@ -47,7 +49,7 @@ def install_npm():
         change_times.append(os.path.getmtime(path))
     settings_change = max(change_times)
     package_path = os.path.join(
-        PROJECT_PATH,
+        TRANSPILE_CACHE_PATH,
         "package.json"
     )
     if os.path.exists(package_path):
@@ -65,7 +67,7 @@ def install_npm():
             )
     npm_install = False
     node_modules_path = os.path.join(
-        PROJECT_PATH,
+        TRANSPILE_CACHE_PATH,
         "node_modules"
     )
     if (
@@ -75,7 +77,7 @@ def install_npm():
         if os.path.exists(node_modules_path):
             shutil.rmtree(node_modules_path)
         call_command("create_package_json")
-        call(["npm", "install"])
+        call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
         signals.post_npm_install.send(sender=None)
         npm_install = True
     return npm_install
