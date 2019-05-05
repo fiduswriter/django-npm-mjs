@@ -246,6 +246,8 @@ class Command(BaseCommand):
         webpack_config_js += '    rules: [\n'
         webpack_config_js += '      {\n'
         webpack_config_js += '        test: /\\.(js|mjs)$/,\n'
+        if settings.DEBUG:
+            webpack_config_js += '        exclude: /node_modules/,\n'
         webpack_config_js += '        use: {\n'
         webpack_config_js += '          loader: "babel-loader"\n'
         webpack_config_js += '        }\n'
