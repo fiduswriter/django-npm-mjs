@@ -7,12 +7,9 @@
   "dependencies": {
     "@babel/preset-env": "7.4.x",
     "@babel/core": "7.4.x",
+    "@babel/plugin-syntax-dynamic-import": "7.2.x",
     "babel-loader": "8.0.x",
     "webpack": "4.30.x",
     "webpack-cli": "3.3.x"
-  },
-  "scripts": {
-    "build": "webpack --mode production",
-    "build:dev": "webpack --mode development"
   }
 }
