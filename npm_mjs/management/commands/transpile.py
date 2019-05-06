@@ -138,6 +138,7 @@ class Command(BaseCommand):
 
         mainfiles = []
         sourcefiles = []
+        lib_sourcefiles = []
         for path in js_paths:
             for mainfile in subprocess.check_output(
                 ["find", path, "-type", "f", "-name", "*.mjs", "-print"]
@@ -148,6 +149,8 @@ class Command(BaseCommand):
             ).decode('utf-8').split("\n")[:-1]:
                 if 'static/js' in sourcefile:
                     sourcefiles.append(sourcefile)
+                if 'static-libs/js' in sourcefile:
+                    lib_sourcefiles.append(sourcefile)
         # Collect all JavaScript in a temporary dir (similar to
         # ./manage.py collectstatic).
         # This allows for the modules to import from oneanother, across Django
@@ -201,6 +204,19 @@ class Command(BaseCommand):
                     module_name not in plugin_dirs[dirname]
                 ):
                     plugin_dirs[dirname].append(module_name)
+
+        for sourcefile in lib_sourcefiles:
+            relative_path = sourcefile.split('static-libs/js/')[1]
+            outfile = os.path.join(cache_path, relative_path)
+            cache_files.append(outfile)
+            dirname = os.path.dirname(outfile)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+                shutil.copyfile(sourcefile, outfile)
+            elif not os.path.isfile(outfile):
+                shutil.copyfile(sourcefile, outfile)
+            elif os.path.getmtime(outfile) < os.path.getmtime(sourcefile):
+                shutil.copyfile(sourcefile, outfile)
 
         # Write an index.js file for every plugin dir
         for plugin_dir in plugin_dirs:
