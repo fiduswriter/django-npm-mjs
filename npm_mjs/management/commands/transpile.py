@@ -272,6 +272,9 @@ class Command(BaseCommand):
         webpack_config_js += '  },\n'
         webpack_config_js += '  output: {\n'
         webpack_config_js += '    path: "{}",\n'.format(out_dir)
+        webpack_config_js += '    chunkFilename: "{}-[id].js",\n'.format(
+            LAST_RUN['version']
+        )
         webpack_config_js += '    publicPath: "{}",\n'.format(
             transpile_base_url
         )
