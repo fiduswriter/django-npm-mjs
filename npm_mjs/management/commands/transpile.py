@@ -155,22 +155,7 @@ class Command(BaseCommand):
         # ./manage.py collectstatic).
         # This allows for the modules to import from oneanother, across Django
         # Apps.
-        #
-        # Add a babel configuration file to transpile folder if it does not
-        # yet exist.
-        babelrc_path = os.path.join(TRANSPILE_CACHE_PATH, ".babelrc")
-        if not os.path.exists(babelrc_path):
-            shutil.copyfile(
-                os.path.join(
-                    os.path.dirname(
-                        os.path.realpath(
-                            __file__
-                        )
-                    ),
-                    '../../.babelrc'
-                ),
-                os.path.join(TRANSPILE_CACHE_PATH, '.babelrc')
-            )
+
         cache_path = os.path.join(TRANSPILE_CACHE_PATH, "js/")
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
@@ -257,38 +242,46 @@ class Command(BaseCommand):
             mode = 'development'
         else:
             mode = 'production'
-        webpack_config_js += '  mode: "{}",\n'.format(mode)
-        webpack_config_js += '  module: {\n'
-        webpack_config_js += '    rules: [\n'
-        webpack_config_js += '      {\n'
-        webpack_config_js += '        test: /\\.(js|mjs)$/,\n'
+        webpack_config_js += ' mode: "{}",\n'.format(mode)
+        webpack_config_js += ' module: {\n'
+        webpack_config_js += '  rules: [\n'
+        webpack_config_js += '   {\n'
+        webpack_config_js += '    test: /\\.(js|mjs)$/,\n'
         if settings.DEBUG:
-            webpack_config_js += '        exclude: /node_modules/,\n'
-        webpack_config_js += '        use: {\n'
-        webpack_config_js += '          loader: "babel-loader"\n'
-        webpack_config_js += '        }\n'
-        webpack_config_js += '      }\n'
-        webpack_config_js += '    ]\n'
-        webpack_config_js += '  },\n'
-        webpack_config_js += '  output: {\n'
-        webpack_config_js += '    path: "{}",\n'.format(out_dir)
-        webpack_config_js += '    chunkFilename: "{}-[id].js",\n'.format(
+            webpack_config_js += '    exclude: /node_modules/,\n'
+        webpack_config_js += '    use: {\n'
+        webpack_config_js += '     loader: "babel-loader",\n'
+        webpack_config_js += '     options: {\n'
+        webpack_config_js += '      presets: [\n'
+        webpack_config_js += '       "@babel/preset-env"\n'
+        webpack_config_js += '      ],\n'
+        webpack_config_js += '      plugins: [\n'
+        webpack_config_js += '       "@babel/plugin-syntax-dynamic-import"\n'
+        webpack_config_js += '      ]\n'
+        webpack_config_js += '     }\n'
+        webpack_config_js += '    }\n'
+        webpack_config_js += '   }\n'
+        webpack_config_js += '  ]\n'
+        webpack_config_js += ' },\n'
+        webpack_config_js += ' output: {\n'
+        webpack_config_js += '  path: "{}",\n'.format(out_dir)
+        webpack_config_js += '  chunkFilename: "{}-[id].js",\n'.format(
             LAST_RUN['version']
         )
-        webpack_config_js += '    publicPath: "{}",\n'.format(
+        webpack_config_js += '  publicPath: "{}",\n'.format(
             transpile_base_url
         )
-        webpack_config_js += '  },\n'
-        webpack_config_js += '  entry: {\n'
+        webpack_config_js += ' },\n'
+        webpack_config_js += ' entry: {\n'
         for mainfile in mainfiles:
             basename = os.path.basename(mainfile)
             modulename = basename.split('.')[0]
             file_path = os.path.join(cache_path, basename)
-            webpack_config_js += '    {}: "{}",\n'.format(
+            webpack_config_js += '  {}: "{}",\n'.format(
                 modulename,
                 file_path
             )
-        webpack_config_js += '  }\n'
+        webpack_config_js += ' }\n'
         webpack_config_js += '}\n'
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:

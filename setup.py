@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-npm-mjs',
-    version='1.0.5',
+    version='1.0.6',
     packages=find_packages(),
     include_package_data=True,
     license='LGPL License',
@@ -25,8 +25,7 @@ setup(
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 1.11',
-        'Framework :: Django :: 2.1',
+        'Framework :: Django :: 2.2',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: ' +
         'GNU Lesser General Public License v3 (LGPLv3)',
