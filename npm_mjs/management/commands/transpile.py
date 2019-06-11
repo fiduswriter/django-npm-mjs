@@ -237,7 +237,8 @@ class Command(BaseCommand):
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
         transpile_base_url = urljoin(static_base_url, 'js/transpile/')
 
-        webpack_config_js = 'module.exports = {\n'
+        webpack_config_js = 'var webpack = require("webpack");'
+        webpack_config_js += 'module.exports = {\n'
         if settings.DEBUG:
             mode = 'development'
         else:
@@ -272,6 +273,11 @@ class Command(BaseCommand):
             transpile_base_url
         )
         webpack_config_js += ' },\n'
+        webpack_config_js += ' plugins: [\n'
+        webpack_config_js += '  new webpack.DefinePlugin({'
+        webpack_config_js += '   "process.env.TRANSPILE_VERSION": process.env.TRANSPILE_VERSION\n'
+        webpack_config_js += '  })'
+        webpack_config_js += ' ],\n'
         webpack_config_js += ' entry: {\n'
         for mainfile in mainfiles:
             basename = os.path.basename(mainfile)
