@@ -6,6 +6,7 @@ import os
 import shutil
 import time
 import pickle
+import re
 
 from django.utils.six.moves.urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -16,6 +17,14 @@ from django.apps import apps
 
 from .npm_install import install_npm
 from npm_mjs import signals
+
+
+# From https://gist.github.com/carlsmith/b2e6ba538ca6f58689b4c18f46fef11c
+def replace(string, substitutions):
+    substrings = sorted(substitutions, key=len, reverse=True)
+    regex = re.compile('|'.join(map(re.escape, substrings)))
+    return regex.sub(lambda match: substitutions[match.group(0)], string)
+
 
 if settings.PROJECT_PATH:
     PROJECT_PATH = settings.PROJECT_PATH
@@ -236,59 +245,46 @@ class Command(BaseCommand):
         else:
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
         transpile_base_url = urljoin(static_base_url, 'js/transpile/')
-
-        webpack_config_js = 'var webpack = require("webpack");'
-        webpack_config_js += 'module.exports = {\n'
+        if (
+            hasattr(settings, 'WEBPACK_CONFIG_TEMPLATE') and
+            settings.WEBPACK_CONFIG_TEMPLATE
+        ):
+            webpack_config_template_path = settings.WEBPACK_CONFIG_TEMPLATE
+        else:
+            webpack_config_template_path = os.path.join(
+                os.path.dirname(
+                    os.path.realpath(__file__)
+                ),
+                'webpack.config.template.js'
+            )
         if settings.DEBUG:
             mode = 'development'
+            rules = 'exclude: /node_modules/,'
         else:
             mode = 'production'
-        webpack_config_js += ' mode: "{}",\n'.format(mode)
-        webpack_config_js += ' module: {\n'
-        webpack_config_js += '  rules: [\n'
-        webpack_config_js += '   {\n'
-        webpack_config_js += '    test: /\\.(js|mjs)$/,\n'
-        if settings.DEBUG:
-            webpack_config_js += '    exclude: /node_modules/,\n'
-        webpack_config_js += '    use: {\n'
-        webpack_config_js += '     loader: "babel-loader",\n'
-        webpack_config_js += '     options: {\n'
-        webpack_config_js += '      presets: [\n'
-        webpack_config_js += '       "@babel/preset-env"\n'
-        webpack_config_js += '      ],\n'
-        webpack_config_js += '      plugins: [\n'
-        webpack_config_js += '       "@babel/plugin-syntax-dynamic-import"\n'
-        webpack_config_js += '      ]\n'
-        webpack_config_js += '     }\n'
-        webpack_config_js += '    }\n'
-        webpack_config_js += '   }\n'
-        webpack_config_js += '  ]\n'
-        webpack_config_js += ' },\n'
-        webpack_config_js += ' output: {\n'
-        webpack_config_js += '  path: "{}",\n'.format(out_dir)
-        webpack_config_js += '  chunkFilename: "{}-[id].js",\n'.format(
-            LAST_RUN['version']
-        )
-        webpack_config_js += '  publicPath: "{}",\n'.format(
-            transpile_base_url
-        )
-        webpack_config_js += ' },\n'
-        webpack_config_js += ' plugins: [\n'
-        webpack_config_js += '  new webpack.DefinePlugin({'
-        webpack_config_js += '   "process.env.TRANSPILE_VERSION": process.env.TRANSPILE_VERSION\n'
-        webpack_config_js += '  })'
-        webpack_config_js += ' ],\n'
-        webpack_config_js += ' entry: {\n'
+            rules = ''
+        entries = ''
         for mainfile in mainfiles:
             basename = os.path.basename(mainfile)
             modulename = basename.split('.')[0]
             file_path = os.path.join(cache_path, basename)
-            webpack_config_js += '  {}: "{}",\n'.format(
+            entries += '  {}: "{}",\n'.format(
                 modulename,
                 file_path
             )
-        webpack_config_js += ' }\n'
-        webpack_config_js += '}\n'
+        with open(webpack_config_template_path, 'r') as f:
+            webpack_config_template = f.read()
+        webpack_config_js = replace(
+            webpack_config_template,
+            {
+                '$MODE$': mode,
+                '$RULES$': rules,
+                '$OUT_DIR$': out_dir,
+                '$VERSION$': str(LAST_RUN['version']),
+                '$TRANSPILE_BASE_URL$': transpile_base_url,
+                '$ENTRIES$': entries
+            }
+        )
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
             with open(WEBPACK_CONFIG_JS_PATH, 'w') as f:
