@@ -255,7 +255,7 @@ class Command(BaseCommand):
                 os.path.dirname(
                     os.path.realpath(__file__)
                 ),
-                'webpack.config.template.js'
+                'webpack.config.template'
             )
         if settings.DEBUG:
             mode = 'development'
