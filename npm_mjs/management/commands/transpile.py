@@ -16,6 +16,7 @@ from django.templatetags.static import PrefixNode
 from django.apps import apps
 
 from .npm_install import install_npm
+from .collectstatic import Command as CSCommand
 from npm_mjs import signals
 
 
@@ -133,7 +134,7 @@ class Command(BaseCommand):
         ) as f:
             pickle.dump(LAST_RUN['version'], f)
         # Create a static output dir
-        out_dir = os.path.join(transpile_path, "js/transpile/")
+        out_dir = os.path.join(transpile_path, "js/")
         os.makedirs(out_dir)
         with open(os.path.join(transpile_path, "README.txt"), 'w') as f:
             f.write(
@@ -244,7 +245,7 @@ class Command(BaseCommand):
             static_base_url = staticfiles_storage.base_url
         else:
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
-        transpile_base_url = urljoin(static_base_url, 'js/transpile/')
+        transpile_base_url = urljoin(static_base_url, 'js/')
         if (
             hasattr(settings, 'WEBPACK_CONFIG_TEMPLATE') and
             settings.WEBPACK_CONFIG_TEMPLATE
@@ -255,14 +256,14 @@ class Command(BaseCommand):
                 os.path.dirname(
                     os.path.realpath(__file__)
                 ),
-                'webpack.config.template'
+                'webpack.config.template.js'
             )
         if settings.DEBUG:
             mode = 'development'
-            rules = 'exclude: /node_modules/,'
+            rules = 'test: /\.(js|mjs)$/, exclude: /node_modules/'
         else:
             mode = 'production'
-            rules = ''
+            rules = 'test: /\.(js|mjs)$/'
         entries = ''
         for mainfile in mainfiles:
             basename = os.path.basename(mainfile)
@@ -272,6 +273,23 @@ class Command(BaseCommand):
                 modulename,
                 file_path
             )
+        find_static = CSCommand()
+        find_static.set_options(**{
+            'interactive': False,
+            'verbosity': 0,
+            'link': False,
+            'clear': False,
+            'dry_run': True,
+            'ignore_patterns': ['js/', 'admin/'],
+            'use_default_ignore_patterns': True,
+            'post_process': True
+        })
+        found_files = find_static.collect()
+        static_frontend_files = (
+            found_files['modified'] +
+            found_files['unmodified'] +
+            found_files['post_processed']
+        )
         with open(webpack_config_template_path, 'r') as f:
             webpack_config_template = f.read()
         webpack_config_js = replace(
@@ -282,7 +300,17 @@ class Command(BaseCommand):
                 '$OUT_DIR$': out_dir,
                 '$VERSION$': str(LAST_RUN['version']),
                 '$TRANSPILE_BASE_URL$': transpile_base_url,
-                '$ENTRIES$': entries
+                '$ENTRIES$': entries,
+                '$STATIC_FRONTEND_FILES$': (
+                    '"' +
+                    '", "'.join(
+                        map(
+                            lambda x: urljoin(static_base_url, x),
+                            static_frontend_files
+                        )
+                    ) +
+                    '"'
+                )
             }
         )
 

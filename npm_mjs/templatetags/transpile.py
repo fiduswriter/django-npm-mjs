@@ -16,7 +16,7 @@ class StaticTranspileNode(StaticNode):
     def handle_simple(cls, path):
         path = re.sub(
             r'^js/(.*)\.mjs',
-            r'js/transpile/\1.js',
+            r'js/\1.js',
             path
         )
         if apps.is_installed('django.contrib.staticfiles'):
@@ -42,7 +42,7 @@ def static(parser, token):
     Usage::
         {% static path [as varname] %}
     Examples::
-        {% static "js/index.mjs" %} # turns into js/transpile/index.js?v=213...
+        {% static "js/index.mjs" %} # turns into js/index.js?v=213...
         {% static "css/style.css" %} # turns into css/style.css?v=213...
         {% static variable_with_path %}
         {% static variable_with_path as varname %}

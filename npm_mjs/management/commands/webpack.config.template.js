@@ -4,8 +4,7 @@ module.exports = {
  module: {
   rules: [
    {
-    test: /\.(js|mjs)$/,
-    $RULES$
+    $RULES$,
     use: {
      loader: "babel-loader",
      options: {
