@@ -1,6 +1,7 @@
 import os
 import pickle
 import shutil
+import time
 from subprocess import call
 
 from django.core.management import call_command
@@ -28,7 +29,7 @@ TRANSPILE_TIME_PATH = os.path.join(
 )
 
 LAST_RUN = {
-    'version': 0
+    'npm_install': 0
 }
 
 try:
@@ -36,14 +37,13 @@ try:
         TRANSPILE_TIME_PATH,
         'rb'
     ) as f:
-        LAST_RUN['version'] = pickle.load(f)
-except EOFError:
-    pass
-except IOError:
+        LAST_RUN = {**LAST_RUN, **pickle.load(f)}
+except (EOFError, IOError, TypeError):
     pass
 
 
-def install_npm():
+def install_npm(force):
+    global LAST_RUN
     change_times = [0, ]
     for path in SETTINGS_PATHS:
         change_times.append(os.path.getmtime(path))
@@ -71,9 +71,27 @@ def install_npm():
         "node_modules"
     )
     if (
-        settings_change > LAST_RUN['version'] or
-        app_package_change > package_change
+        settings_change > LAST_RUN['npm_install'] or
+        app_package_change > package_change or
+        force
     ):
+        if not os.path.exists(TRANSPILE_CACHE_PATH):
+            os.makedirs(TRANSPILE_CACHE_PATH)
+        # We reload the file as other values may have changed in the meantime
+        try:
+            with open(
+                TRANSPILE_TIME_PATH,
+                'rb'
+            ) as f:
+                LAST_RUN = {**LAST_RUN, **pickle.load(f)}
+        except (EOFError, IOError, TypeError):
+            pass
+        LAST_RUN['npm_install'] = int(round(time.time()))
+        with open(
+            TRANSPILE_TIME_PATH,
+            'wb'
+        ) as f:
+            pickle.dump(LAST_RUN, f)
         if os.path.exists(node_modules_path):
             shutil.rmtree(node_modules_path)
         call_command("create_package_json")
@@ -84,6 +102,21 @@ def install_npm():
 
 
 class Command(BaseCommand):
+    help = ('Run npm install on package.json files in app folders.')
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            dest='force',
+            default=False,
+            help='Force npm install even if no change is detected.',
+        )
+
     def handle(self, *args, **options):
         self.stdout.write("Installing npm dependencies...")
-        install_npm()
+        if options["force"]:
+            force = True
+        else:
+            force = False
+        install_npm(force)

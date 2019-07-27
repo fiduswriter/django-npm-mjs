@@ -43,7 +43,7 @@ TRANSPILE_TIME_PATH = os.path.join(
 )
 
 LAST_RUN = {
-    'version': 0
+    'transpile': 0
 }
 
 try:
@@ -51,10 +51,8 @@ try:
         TRANSPILE_TIME_PATH,
         'rb'
     ) as f:
-        LAST_RUN['version'] = pickle.load(f)
-except EOFError:
-    pass
-except IOError:
+        LAST_RUN = {**LAST_RUN, **pickle.load(f)}
+except (EOFError, IOError, TypeError):
     pass
 
 WEBPACK_CONFIG_JS_PATH = os.path.join(
@@ -91,7 +89,7 @@ class Command(BaseCommand):
         else:
             force = False
         start = int(round(time.time()))
-        npm_install = install_npm()
+        npm_install = install_npm(force)
         self.stdout.write("Transpiling...")
         js_paths = finders.find('js/', True)
         # Remove paths inside of collection dir
@@ -125,14 +123,23 @@ class Command(BaseCommand):
                 return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path)
-        LAST_RUN['version'] = start
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
+        # We reload the file as other values may have changed in the meantime
+        try:
+            with open(
+                TRANSPILE_TIME_PATH,
+                'rb'
+            ) as f:
+                LAST_RUN = {**LAST_RUN, **pickle.load(f)}
+        except (EOFError, IOError, TypeError):
+            pass
+        LAST_RUN['transpile'] = start
         with open(
             TRANSPILE_TIME_PATH,
             'wb'
         ) as f:
-            pickle.dump(LAST_RUN['version'], f)
+            pickle.dump(LAST_RUN, f)
         # Create a static output dir
         out_dir = os.path.join(transpile_path, "js/")
         os.makedirs(out_dir)
@@ -298,7 +305,7 @@ class Command(BaseCommand):
                 '$MODE$': mode,
                 '$RULES$': rules,
                 '$OUT_DIR$': out_dir,
-                '$VERSION$': str(LAST_RUN['version']),
+                '$VERSION$': str(LAST_RUN['transpile']),
                 '$TRANSPILE_BASE_URL$': transpile_base_url,
                 '$ENTRIES$': entries,
                 '$STATIC_FRONTEND_FILES$': (
@@ -318,7 +325,7 @@ class Command(BaseCommand):
             with open(WEBPACK_CONFIG_JS_PATH, 'w') as f:
                 f.write(webpack_config_js)
         env = os.environ.copy()
-        env['TRANSPILE_VERSION'] = str(LAST_RUN['version'])
+        env['TRANSPILE_VERSION'] = str(LAST_RUN['transpile'])
         call(
             ['./node_modules/.bin/webpack'],
             cwd=TRANSPILE_CACHE_PATH,
