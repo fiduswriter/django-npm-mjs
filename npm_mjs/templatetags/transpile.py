@@ -23,14 +23,14 @@ class StaticTranspileNode(StaticNode):
             from django.contrib.staticfiles.storage import staticfiles_storage
             return (
                 staticfiles_storage.url(path) +
-                '?v=%s' % LAST_RUN['version']
+                '?v=%s' % LAST_RUN['transpile']
             )
         else:
             return (
                 urljoin(
                     PrefixNode.handle_simple("STATIC_URL"),
                     quote(path)
-                ) + '?v=%s' % LAST_RUN['version']
+                ) + '?v=%s' % LAST_RUN['transpile']
             )
 
 
