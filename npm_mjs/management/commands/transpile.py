@@ -294,11 +294,20 @@ class Command(BaseCommand):
         }
         with open(webpack_config_template_path, 'r') as f:
             webpack_config_template = f.read()
+        settings_dict = {}
+        for var in dir(settings):
+            if var in ['DATABASES', 'SECRET_KEY']:
+                # For extra security, we do not copy DATABASES or SECRET_KEY
+                continue
+            settings_dict[var] = getattr(settings, var)
         webpack_config_js = \
-            'const settings = {}\nconst transpile = {}\n{}'.format(
-                json.dumps(settings.__dict__, default=lambda x: False),
-                json.dumps(transpile),
-                webpack_config_template
+            webpack_config_template.replace(
+                'window.transpile', json.dumps(transpile)
+            ).replace(
+                'window.settings', json.dumps(
+                    settings_dict,
+                    default=lambda x: False
+                )
             )
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:

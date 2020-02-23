@@ -1,5 +1,8 @@
 const webpack = require("webpack") // eslint-disable-line no-undef
 
+const settings = window.settings // Replaced by django-npm-mjs
+const transpile = window.transpile // Replaced by django-npm-mjs
+
 const baseRule = {
     test: /\.(js|mjs)$/,
     use: {
@@ -15,24 +18,24 @@ const baseRule = {
     }
 }
 
-if (settings.DEBUG) { // eslint-disable-line no-undef
+if (settings.DEBUG) {
     baseRule.exclude = /node_modules/
 }
 
 module.exports = { // eslint-disable-line no-undef
-    mode: settings.DEBUG ? 'development' : 'production', // eslint-disable-line no-undef
+    mode: settings.DEBUG ? 'development' : 'production',
     module: {
         rules: [baseRule]
     },
     output: {
-        path: transpile.OUT_DIR, // eslint-disable-line no-undef
-        chunkFilename: transpile.VERSION + "-[id].js", // eslint-disable-line no-undef
-        publicPath: transpile.BASE_URL // eslint-disable-line no-undef
+        path: transpile.OUT_DIR,
+        chunkFilename: transpile.VERSION + "-[id].js",
+        publicPath: transpile.BASE_URL
     },
     plugins: [
         new webpack.DefinePlugin({
-            "transpile.VERSION": transpile.VERSION // eslint-disable-line no-undef
+            "transpile.VERSION": transpile.VERSION
         })
     ],
-    entry: transpile.ENTRIES // eslint-disable-line no-undef
+    entry: transpile.ENTRIES
 }
