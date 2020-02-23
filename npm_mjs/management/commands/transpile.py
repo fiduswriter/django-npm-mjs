@@ -30,7 +30,7 @@ def find_setting(key):
 
 
 def replace_settings(string):
-    regex = re.compile(r'django.conf.settings\.([\w,\.,\',\",\[,\]]+)')
+    regex = re.compile(r'django.conf.settings\.([\w\.\'\"\[\]]+)')
     return regex.sub(lambda match: find_setting(match.group(1)), string)
 
 
@@ -312,7 +312,7 @@ class Command(BaseCommand):
             webpack_config_template,
             {
                 'transpile.OUT_DIR': json.dumps(out_dir),
-                'transpile.VERSION': json.dumps(LAST_RUN['transpile']),
+                'transpile.LAST_RUN': json.dumps(LAST_RUN['transpile']),
                 'transpile.BASE_URL': json.dumps(transpile_base_url),
                 'transpile.ENTRIES': json.dumps(entries),
                 'transpile.STATIC_FRONTEND_FILES': json.dumps(list(map(

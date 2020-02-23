@@ -26,12 +26,12 @@ module.exports = {
     },
     output: {
         path: transpile.OUT_DIR,
-        chunkFilename: transpile.VERSION + "-[id].js",
-        publicPath: transpile.BASE_URL,
+        chunkFilename: transpile.LAST_RUN + "-[id].js",
+        publicPath: transpile.BASE_URL
     },
     plugins: [
         new webpack.DefinePlugin({
-            "transpile.VERSION": transpile.VERSION
+            "transpile.VERSION": transpile.LAST_RUN
         })
     ],
     entry: transpile.ENTRIES
