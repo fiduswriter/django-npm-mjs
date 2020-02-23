@@ -21,30 +21,6 @@ from .collectstatic import Command as CSCommand
 from npm_mjs import signals
 
 
-def find_setting(key):
-    try:
-        value = eval('settings.' + key)
-    except:
-        return key
-    return json.dumps(json.dumps(value))
-
-
-def replace_settings(string):
-    regex = re.compile(r'django.conf.settings\.([\w\.\'\"\[\]]+)')
-    return regex.sub(lambda match: find_setting(match.group(1)), string)
-
-
-# From https://gist.github.com/carlsmith/b2e6ba538ca6f58689b4c18f46fef11c
-def replace(string, substitutions):
-    substrings = sorted(substitutions, key=len, reverse=True)
-    regex = re.compile('|'.join(map(re.escape, substrings)))
-    return_string = regex.sub(
-        lambda match: substitutions[match.group(0)],
-        string
-    )
-    return replace_settings(return_string)
-
-
 if settings.PROJECT_PATH:
     PROJECT_PATH = settings.PROJECT_PATH
 else:
@@ -306,21 +282,24 @@ class Command(BaseCommand):
             found_files['unmodified'] +
             found_files['post_processed']
         )
+        transpile = {
+            'OUT_DIR': out_dir,
+            'VERSION': LAST_RUN['transpile'],
+            'BASE_URL': transpile_base_url,
+            'ENTRIES': entries,
+            'STATIC_FRONTEND_FILES': list(map(
+                lambda x: urljoin(static_base_url, x),
+                static_frontend_files
+            ))
+        }
         with open(webpack_config_template_path, 'r') as f:
             webpack_config_template = f.read()
-        webpack_config_js = replace(
-            webpack_config_template,
-            {
-                'transpile.OUT_DIR': json.dumps(out_dir),
-                'transpile.LAST_RUN': json.dumps(LAST_RUN['transpile']),
-                'transpile.BASE_URL': json.dumps(transpile_base_url),
-                'transpile.ENTRIES': json.dumps(entries),
-                'transpile.STATIC_FRONTEND_FILES': json.dumps(list(map(
-                    lambda x: urljoin(static_base_url, x),
-                    static_frontend_files
-                )))
-            }
-        )
+        webpack_config_js = \
+            'const settings = {}\nconst transpile = {}\n{}'.format(
+                json.dumps(settings.__dict__, default=lambda x: False),
+                json.dumps(transpile),
+                webpack_config_template
+            )
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
             with open(WEBPACK_CONFIG_JS_PATH, 'w') as f:
