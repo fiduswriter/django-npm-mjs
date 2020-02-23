@@ -76,8 +76,8 @@ Referring to the transpile version within JavaScript sources
 
 In your JavaScript sources, you can refer to the version string of the last transpile run like this::
 
-        process.env.TRANSPILE_VERSION
+        transpile.VERSION
 
 For example::
 
-        let downloadJS = `download.js?v=${process.env.TRANSPILE_VERSION}` // Latest version of transpiled version of download.mjs
+        let downloadJS = `download.js?v=${transpile.VERSION}` // Latest version of transpiled version of download.mjs

@@ -1,35 +1,38 @@
 var webpack = require("webpack");
-module.exports = {
- mode: "$MODE$",
- module: {
-  rules: [
-   {
-    $RULES$,
+
+const baseRule = {
+    test: /\.(js|mjs)$/,
     use: {
-     loader: "babel-loader",
-     options: {
-      presets: [
-       "@babel/preset-env"
-      ],
-      plugins: [
-       "@babel/plugin-syntax-dynamic-import"
-      ]
-     }
+        loader: "babel-loader",
+        options: {
+            presets: [
+                "@babel/preset-env"
+            ],
+            plugins: [
+                "@babel/plugin-syntax-dynamic-import"
+            ]
+        }
     }
-   }
-  ]
- },
- output: {
-  path: "$OUT_DIR$",
-  chunkFilename: "$VERSION$-[id].js",
-  publicPath: "$TRANSPILE_BASE_URL$",
- },
- plugins: [
-  new webpack.DefinePlugin({
-   "process.env.TRANSPILE_VERSION": process.env.TRANSPILE_VERSION
-  })
- ],
- entry: {
-  $ENTRIES$
- }
+}
+
+if (django.conf.settings.DEBUG) {
+    baseRule.exclude = /node_modules/
+}
+
+module.exports = {
+    mode: django.conf.settings.DEBUG ? 'development' : 'production',
+    module: {
+        rules: [baseRule]
+    },
+    output: {
+        path: transpile.OUT_DIR,
+        chunkFilename: transpile.VERSION + "-[id].js",
+        publicPath: transpile.BASE_URL,
+    },
+    plugins: [
+        new webpack.DefinePlugin({
+            "transpile.VERSION": transpile.VERSION
+        })
+    ],
+    entry: transpile.ENTRIES
 }

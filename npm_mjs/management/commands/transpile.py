@@ -7,6 +7,7 @@ import shutil
 import time
 import pickle
 import re
+import json
 
 from django.utils.six.moves.urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -20,11 +21,28 @@ from .collectstatic import Command as CSCommand
 from npm_mjs import signals
 
 
+def find_setting(key):
+    try:
+        value = eval('settings.' + key)
+    except:
+        return key
+    return json.dumps(json.dumps(value))
+
+
+def replace_settings(string):
+    regex = re.compile(r'django.conf.settings\.([\w,\.,\',\",\[,\]]+)')
+    return regex.sub(lambda match: find_setting(match.group(1)), string)
+
+
 # From https://gist.github.com/carlsmith/b2e6ba538ca6f58689b4c18f46fef11c
 def replace(string, substitutions):
     substrings = sorted(substitutions, key=len, reverse=True)
     regex = re.compile('|'.join(map(re.escape, substrings)))
-    return regex.sub(lambda match: substitutions[match.group(0)], string)
+    return_string = regex.sub(
+        lambda match: substitutions[match.group(0)],
+        string
+    )
+    return replace_settings(return_string)
 
 
 if settings.PROJECT_PATH:
@@ -265,21 +283,12 @@ class Command(BaseCommand):
                 ),
                 'webpack.config.template.js'
             )
-        if settings.DEBUG:
-            mode = 'development'
-            rules = 'test: /\.(js|mjs)$/, exclude: /node_modules/'
-        else:
-            mode = 'production'
-            rules = 'test: /\.(js|mjs)$/'
-        entries = ''
+        entries = {}
         for mainfile in mainfiles:
             basename = os.path.basename(mainfile)
             modulename = basename.split('.')[0]
             file_path = os.path.join(cache_path, basename)
-            entries += '  {}: "{}",\n'.format(
-                modulename,
-                file_path
-            )
+            entries[modulename] = file_path
         find_static = CSCommand()
         find_static.set_options(**{
             'interactive': False,
@@ -302,34 +311,23 @@ class Command(BaseCommand):
         webpack_config_js = replace(
             webpack_config_template,
             {
-                '$MODE$': mode,
-                '$RULES$': rules,
-                '$OUT_DIR$': out_dir,
-                '$VERSION$': str(LAST_RUN['transpile']),
-                '$TRANSPILE_BASE_URL$': transpile_base_url,
-                '$ENTRIES$': entries,
-                '$STATIC_FRONTEND_FILES$': (
-                    '"' +
-                    '", "'.join(
-                        map(
-                            lambda x: urljoin(static_base_url, x),
-                            static_frontend_files
-                        )
-                    ) +
-                    '"'
-                )
+                'transpile.OUT_DIR': json.dumps(out_dir),
+                'transpile.VERSION': json.dumps(LAST_RUN['transpile']),
+                'transpile.BASE_URL': json.dumps(transpile_base_url),
+                'transpile.ENTRIES': json.dumps(entries),
+                'transpile.STATIC_FRONTEND_FILES': json.dumps(list(map(
+                    lambda x: urljoin(static_base_url, x),
+                    static_frontend_files
+                )))
             }
         )
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
             with open(WEBPACK_CONFIG_JS_PATH, 'w') as f:
                 f.write(webpack_config_js)
-        env = os.environ.copy()
-        env['TRANSPILE_VERSION'] = str(LAST_RUN['transpile'])
         call(
             ['./node_modules/.bin/webpack'],
-            cwd=TRANSPILE_CACHE_PATH,
-            env=env
+            cwd=TRANSPILE_CACHE_PATH
         )
         end = int(round(time.time()))
         self.stdout.write(
