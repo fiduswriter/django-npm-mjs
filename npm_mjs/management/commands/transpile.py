@@ -9,7 +9,7 @@ import pickle
 import re
 import json
 
-from django.utils.six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 from django.core.management.base import BaseCommand
 from django.contrib.staticfiles import finders
 from django.conf import settings

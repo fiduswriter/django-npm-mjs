@@ -34,7 +34,7 @@ module.exports = { // eslint-disable-line no-undef
     },
     plugins: [
         new webpack.DefinePlugin({
-            "transpile.VERSION": transpile.VERSION
+            "transpile_VERSION": transpile.VERSION
         })
     ],
     entry: transpile.ENTRIES
