@@ -299,7 +299,10 @@ class Command(BaseCommand):
             if var in ['DATABASES', 'SECRET_KEY']:
                 # For extra security, we do not copy DATABASES or SECRET_KEY
                 continue
-            settings_dict[var] = getattr(settings, var)
+            try:
+                settings_dict[var] = getattr(settings, var)
+            except AttributeError:
+                pass
         webpack_config_js = \
             webpack_config_template.replace(
                 'window.transpile', json.dumps(transpile)
