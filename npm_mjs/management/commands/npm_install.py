@@ -52,7 +52,11 @@ def install_npm(force):
         TRANSPILE_CACHE_PATH,
         "package.json"
     )
-    if os.path.exists(package_path):
+    webpack_bin_path = os.path.join(
+        TRANSPILE_CACHE_PATH,
+        "node_modules/.bin/webpack"
+    )
+    if os.path.exists(package_path) and os.path.exists(webpack_bin_path):
         package_change = os.path.getmtime(package_path)
     else:
         package_change = -1
@@ -66,10 +70,6 @@ def install_npm(force):
                 app_package_change
             )
     npm_install = False
-    node_modules_path = os.path.join(
-        TRANSPILE_CACHE_PATH,
-        "node_modules"
-    )
     if (
         settings_change > LAST_RUN['npm_install'] or
         app_package_change > package_change or
@@ -92,6 +92,10 @@ def install_npm(force):
             'wb'
         ) as f:
             pickle.dump(LAST_RUN, f)
+        node_modules_path = os.path.join(
+            TRANSPILE_CACHE_PATH,
+            "node_modules"
+        )
         if os.path.exists(node_modules_path):
             shutil.rmtree(node_modules_path)
         call_command("create_package_json")
