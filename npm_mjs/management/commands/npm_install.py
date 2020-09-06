@@ -97,7 +97,7 @@ def install_npm(force):
             "node_modules"
         )
         if os.path.exists(node_modules_path):
-            shutil.rmtree(node_modules_path)
+            shutil.rmtree(node_modules_path, ignore_errors=True)
         call_command("create_package_json")
         call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
         signals.post_npm_install.send(sender=None)

@@ -116,7 +116,7 @@ class Command(BaseCommand):
                 # Transpile not needed as nothing has changed and not forced
                 return
             # Remove any previously created static output dirs
-            shutil.rmtree(transpile_path)
+            shutil.rmtree(transpile_path, ignore_errors=True)
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
         # We reload the file as other values may have changed in the meantime
