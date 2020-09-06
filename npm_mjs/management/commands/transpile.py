@@ -84,7 +84,6 @@ class Command(BaseCommand):
             force = False
         start = int(round(time.time()))
         npm_install = install_npm(force)
-        self.stdout.write("Transpiling...")
         js_paths = finders.find('js/', True)
         # Remove paths inside of collection dir
         js_paths = [
@@ -117,6 +116,7 @@ class Command(BaseCommand):
                 return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path, ignore_errors=True)
+        self.stdout.write("Transpiling...")
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
         # We reload the file as other values may have changed in the meantime

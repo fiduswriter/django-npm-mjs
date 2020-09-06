@@ -75,6 +75,7 @@ def install_npm(force):
         app_package_change > package_change or
         force
     ):
+        self.stdout.write("Installing npm dependencies...")
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
         # We reload the file as other values may have changed in the meantime
@@ -118,7 +119,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self.stdout.write("Installing npm dependencies...")
         if options["force"]:
             force = True
         else:
