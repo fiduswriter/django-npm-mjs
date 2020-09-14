@@ -83,7 +83,7 @@ class Command(BaseCommand):
         else:
             force = False
         start = int(round(time.time()))
-        npm_install = install_npm(force)
+        npm_install = install_npm(force, self.stdout)
         js_paths = finders.find('js/', True)
         # Remove paths inside of collection dir
         js_paths = [
