@@ -123,4 +123,4 @@ class Command(BaseCommand):
             force = True
         else:
             force = False
-        install_npm(force, selfstdout)
+        install_npm(force, self.stdout)
