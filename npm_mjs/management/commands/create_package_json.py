@@ -17,11 +17,10 @@ TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
 def deep_merge_dicts(old_dict, merge_dict, scripts=False):
     for key in merge_dict:
         if key in old_dict:
-            if (
-                isinstance(old_dict[key], dict) and
-                isinstance(merge_dict[key], dict)
+            if isinstance(old_dict[key], dict) and isinstance(
+                merge_dict[key], dict
             ):
-                if key == 'scripts':
+                if key == "scripts":
                     deep_merge_dicts(old_dict[key], merge_dict[key], True)
                 else:
                     deep_merge_dicts(old_dict[key], merge_dict[key])
@@ -29,7 +28,7 @@ def deep_merge_dicts(old_dict, merge_dict, scripts=False):
                 # In the scripts section, allow adding to hooks such as
                 # "preinstall" and "postinstall"
                 if scripts and key in old_dict:
-                    old_dict[key] += ' && %s' % merge_dict[key]
+                    old_dict[key] += " && %s" % merge_dict[key]
                 else:
                     old_dict[key] = merge_dict[key]
         else:
@@ -37,13 +36,13 @@ def deep_merge_dicts(old_dict, merge_dict, scripts=False):
 
 
 class Command(BaseCommand):
-    help = 'Join package.json files from apps into common package.json'
+    help = "Join package.json files from apps into common package.json"
 
     def handle(self, *args, **options):
         package = {}
         configs = django_apps.get_app_configs()
         for config in configs:
-            app_package_path = os.path.join(config.path, 'package.json')
+            app_package_path = os.path.join(config.path, "package.json")
             try:
                 with open(app_package_path) as data_file:
                     data = json.loads(json_minify(data_file.read()))
@@ -52,6 +51,6 @@ class Command(BaseCommand):
             deep_merge_dicts(package, data)
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
-        package_path = os.path.join(TRANSPILE_CACHE_PATH, 'package.json')
-        with open(package_path, 'w') as outfile:
+        package_path = os.path.join(TRANSPILE_CACHE_PATH, "package.json")
+        with open(package_path, "w") as outfile:
             json.dump(package, outfile)

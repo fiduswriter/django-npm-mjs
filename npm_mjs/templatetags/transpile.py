@@ -11,26 +11,19 @@ register = template.Library()
 
 
 class StaticTranspileNode(StaticNode):
-
     @classmethod
     def handle_simple(cls, path):
-        path = re.sub(
-            r'^js/(.*)\.mjs',
-            r'js/\1.js',
-            path
-        )
-        if apps.is_installed('django.contrib.staticfiles'):
+        path = re.sub(r"^js/(.*)\.mjs", r"js/\1.js", path)
+        if apps.is_installed("django.contrib.staticfiles"):
             from django.contrib.staticfiles.storage import staticfiles_storage
+
             return (
-                staticfiles_storage.url(path) +
-                '?v=%s' % LAST_RUN['transpile']
+                staticfiles_storage.url(path) + "?v=%s" % LAST_RUN["transpile"]
             )
         else:
             return (
-                urljoin(
-                    PrefixNode.handle_simple("STATIC_URL"),
-                    quote(path)
-                ) + '?v=%s' % LAST_RUN['transpile']
+                urljoin(PrefixNode.handle_simple("STATIC_URL"), quote(path))
+                + "?v=%s" % LAST_RUN["transpile"]
             )
 
 
