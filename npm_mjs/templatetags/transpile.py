@@ -5,7 +5,7 @@ from django import template
 from django.templatetags.static import StaticNode, PrefixNode
 from django.apps import apps
 
-from npm_mjs.management.commands.transpile import LAST_RUN
+from npm_mjs.tools import get_last_run
 
 register = template.Library()
 
@@ -18,12 +18,12 @@ class StaticTranspileNode(StaticNode):
             from django.contrib.staticfiles.storage import staticfiles_storage
 
             return (
-                staticfiles_storage.url(path) + "?v=%s" % LAST_RUN["transpile"]
+                staticfiles_storage.url(path) + "?v=%s" % get_last_run("transpile")
             )
         else:
             return (
                 urljoin(PrefixNode.handle_simple("STATIC_URL"), quote(path))
-                + "?v=%s" % LAST_RUN["transpile"]
+                + "?v=%s" % get_last_run("transpile")
             )
 
 

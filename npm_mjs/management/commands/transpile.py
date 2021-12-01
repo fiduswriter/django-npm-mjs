@@ -5,9 +5,9 @@ from subprocess import call
 import os
 import shutil
 import time
-import pickle
 import re
 import json
+from npm_mjs.tools import get_last_run, set_last_run, TRANSPILE_CACHE_PATH
 
 from urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -19,40 +19,22 @@ from django.apps import apps
 from .npm_install import install_npm
 from .collectstatic import Command as CSCommand
 from npm_mjs import signals
-
-
-if settings.PROJECT_PATH:
-    PROJECT_PATH = settings.PROJECT_PATH
-else:
-    PROJECT_PATH = "./"
+from npm_mjs.tools import PROJECT_PATH, TRANSPILE_CACHE_PATH
 
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
 
-TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
-
-TRANSPILE_TIME_PATH = os.path.join(TRANSPILE_CACHE_PATH, "time")
-
-LAST_RUN = {"transpile": 0}
-
-try:
-    with open(TRANSPILE_TIME_PATH, "rb") as f:
-        LAST_RUN = {**LAST_RUN, **pickle.load(f)}
-except (EOFError, IOError, TypeError):
-    pass
+OLD_WEBPACK_CONFIG_JS = ""
 
 WEBPACK_CONFIG_JS_PATH = os.path.join(
     TRANSPILE_CACHE_PATH, "webpack.config.js"
 )
-
-OLD_WEBPACK_CONFIG_JS = ""
 
 try:
     with open(WEBPACK_CONFIG_JS_PATH, "r") as file:
         OLD_WEBPACK_CONFIG_JS = file.read()
 except IOError:
     pass
-
 
 class Command(BaseCommand):
     help = (
@@ -70,7 +52,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        global LAST_RUN
         if options["force"]:
             force = True
         else:
@@ -106,14 +87,7 @@ class Command(BaseCommand):
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
         # We reload the file as other values may have changed in the meantime
-        try:
-            with open(TRANSPILE_TIME_PATH, "rb") as f:
-                LAST_RUN = {**LAST_RUN, **pickle.load(f)}
-        except (EOFError, IOError, TypeError):
-            pass
-        LAST_RUN["transpile"] = start
-        with open(TRANSPILE_TIME_PATH, "wb") as f:
-            pickle.dump(LAST_RUN, f)
+        set_last_run("transpile", start)
         # Create a static output dir
         out_dir = os.path.join(transpile_path, "js/")
         os.makedirs(out_dir)
@@ -275,7 +249,7 @@ class Command(BaseCommand):
         )
         transpile = {
             "OUT_DIR": out_dir,
-            "VERSION": LAST_RUN["transpile"],
+            "VERSION": get_last_run("transpile"),
             "BASE_URL": transpile_base_url,
             "ENTRIES": entries,
             "STATIC_FRONTEND_FILES": list(

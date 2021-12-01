@@ -1,5 +1,4 @@
 import os
-import pickle
 import shutil
 import time
 from subprocess import call
@@ -10,32 +9,15 @@ from django.conf import settings
 from django.apps import apps as django_apps
 
 from npm_mjs import signals
+from npm_mjs.tools import get_last_run, set_last_run, TRANSPILE_CACHE_PATH
 
 if settings.SETTINGS_PATHS:
     SETTINGS_PATHS = settings.SETTINGS_PATHS
 else:
     SETTINGS_PATHS = []
 
-if settings.PROJECT_PATH:
-    PROJECT_PATH = settings.PROJECT_PATH
-else:
-    PROJECT_PATH = "./"
-
-TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
-
-TRANSPILE_TIME_PATH = os.path.join(TRANSPILE_CACHE_PATH, "time")
-
-LAST_RUN = {"npm_install": 0}
-
-try:
-    with open(TRANSPILE_TIME_PATH, "rb") as f:
-        LAST_RUN = {**LAST_RUN, **pickle.load(f)}
-except (EOFError, IOError, TypeError):
-    pass
-
 
 def install_npm(force, stdout):
-    global LAST_RUN
     change_times = [
         0,
     ]
@@ -43,9 +25,7 @@ def install_npm(force, stdout):
         change_times.append(os.path.getmtime(path))
     settings_change = max(change_times)
     package_path = os.path.join(TRANSPILE_CACHE_PATH, "package.json")
-    webpack_bin_path = os.path.join(
-        TRANSPILE_CACHE_PATH, "node_modules/.bin/webpack"
-    )
+    webpack_bin_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules/.bin/webpack")
     if os.path.exists(package_path) and os.path.exists(webpack_bin_path):
         package_change = os.path.getmtime(package_path)
     else:
@@ -60,22 +40,14 @@ def install_npm(force, stdout):
             )
     npm_install = False
     if (
-        settings_change > LAST_RUN["npm_install"]
+        settings_change > get_last_run("npm_install")
         or app_package_change > package_change
         or force
     ):
         stdout.write("Installing npm dependencies...")
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
-        # We reload the file as other values may have changed in the meantime
-        try:
-            with open(TRANSPILE_TIME_PATH, "rb") as f:
-                LAST_RUN = {**LAST_RUN, **pickle.load(f)}
-        except (EOFError, IOError, TypeError):
-            pass
-        LAST_RUN["npm_install"] = int(round(time.time()))
-        with open(TRANSPILE_TIME_PATH, "wb") as f:
-            pickle.dump(LAST_RUN, f)
+        set_last_run("npm_install", int(round(time.time())))
         node_modules_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules")
         if os.path.exists(node_modules_path):
             shutil.rmtree(node_modules_path, ignore_errors=True)
