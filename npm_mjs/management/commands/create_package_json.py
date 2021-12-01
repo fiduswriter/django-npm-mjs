@@ -17,9 +17,7 @@ TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
 def deep_merge_dicts(old_dict, merge_dict, scripts=False):
     for key in merge_dict:
         if key in old_dict:
-            if isinstance(old_dict[key], dict) and isinstance(
-                merge_dict[key], dict
-            ):
+            if isinstance(old_dict[key], dict) and isinstance(merge_dict[key], dict):
                 if key == "scripts":
                     deep_merge_dicts(old_dict[key], merge_dict[key], True)
                 else:

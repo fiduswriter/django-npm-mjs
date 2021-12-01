@@ -17,14 +17,11 @@ class StaticTranspileNode(StaticNode):
         if apps.is_installed("django.contrib.staticfiles"):
             from django.contrib.staticfiles.storage import staticfiles_storage
 
-            return (
-                staticfiles_storage.url(path) + "?v=%s" % get_last_run("transpile")
-            )
+            return staticfiles_storage.url(path) + "?v=%s" % get_last_run("transpile")
         else:
-            return (
-                urljoin(PrefixNode.handle_simple("STATIC_URL"), quote(path))
-                + "?v=%s" % get_last_run("transpile")
-            )
+            return urljoin(
+                PrefixNode.handle_simple("STATIC_URL"), quote(path)
+            ) + "?v=%s" % get_last_run("transpile")
 
 
 @register.tag

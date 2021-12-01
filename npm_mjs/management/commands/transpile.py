@@ -5,9 +5,8 @@ from subprocess import call
 import os
 import shutil
 import time
-import re
 import json
-from npm_mjs.tools import get_last_run, set_last_run, TRANSPILE_CACHE_PATH
+from npm_mjs.tools import get_last_run, set_last_run, PROJECT_PATH, TRANSPILE_CACHE_PATH
 
 from urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -19,16 +18,13 @@ from django.apps import apps
 from .npm_install import install_npm
 from .collectstatic import Command as CSCommand
 from npm_mjs import signals
-from npm_mjs.tools import PROJECT_PATH, TRANSPILE_CACHE_PATH
 
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
 
 OLD_WEBPACK_CONFIG_JS = ""
 
-WEBPACK_CONFIG_JS_PATH = os.path.join(
-    TRANSPILE_CACHE_PATH, "webpack.config.js"
-)
+WEBPACK_CONFIG_JS_PATH = os.path.join(TRANSPILE_CACHE_PATH, "webpack.config.js")
 
 try:
     with open(WEBPACK_CONFIG_JS_PATH, "r") as file:
@@ -36,10 +32,10 @@ try:
 except IOError:
     pass
 
+
 class Command(BaseCommand):
     help = (
-        "Transpile ES2015+ JavaScript to ES5 JavaScript + include NPM "
-        "dependencies"
+        "Transpile ES2015+ JavaScript to ES5 JavaScript + include NPM " "dependencies"
     )
 
     def add_arguments(self, parser):
@@ -60,9 +56,7 @@ class Command(BaseCommand):
         npm_install = install_npm(force, self.stdout)
         js_paths = finders.find("js/", True)
         # Remove paths inside of collection dir
-        js_paths = [
-            x for x in js_paths if not x.startswith(settings.STATIC_ROOT)
-        ]
+        js_paths = [x for x in js_paths if not x.startswith(settings.STATIC_ROOT)]
 
         transpile_path = os.path.join(PROJECT_PATH, "static-transpile")
 
@@ -74,8 +68,7 @@ class Command(BaseCommand):
                         files.append(os.path.join(root, filename))
             newest_file = max(files, key=os.path.getmtime)
             if (
-                os.path.commonprefix([newest_file, transpile_path])
-                == transpile_path
+                os.path.commonprefix([newest_file, transpile_path]) == transpile_path
                 and not npm_install
                 and not force
             ):
@@ -154,13 +147,8 @@ class Command(BaseCommand):
             if relative_path[:8] == "plugins/":
                 if dirname not in plugin_dirs:
                     plugin_dirs[dirname] = []
-                module_name = os.path.splitext(
-                    os.path.basename(relative_path)
-                )[0]
-                if (
-                    module_name != "init"
-                    and module_name not in plugin_dirs[dirname]
-                ):
+                module_name = os.path.splitext(os.path.basename(relative_path))[0]
+                if module_name != "init" and module_name not in plugin_dirs[dirname]:
                     plugin_dirs[dirname].append(module_name)
 
         for sourcefile in lib_sourcefiles:
@@ -282,7 +270,5 @@ class Command(BaseCommand):
                 f.write(webpack_config_js)
         call(["./node_modules/.bin/webpack"], cwd=TRANSPILE_CACHE_PATH)
         end = int(round(time.time()))
-        self.stdout.write(
-            "Time spent transpiling: " + str(end - start) + " seconds"
-        )
+        self.stdout.write("Time spent transpiling: " + str(end - start) + " seconds")
         signals.post_transpile.send(sender=None)
