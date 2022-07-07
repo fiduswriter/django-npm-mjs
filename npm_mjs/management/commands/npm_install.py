@@ -5,22 +5,15 @@ from subprocess import call
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from django.apps import apps as django_apps
 
 from npm_mjs import signals
-from npm_mjs.tools import get_last_run, set_last_run, TRANSPILE_CACHE_PATH
-
-if settings.SETTINGS_PATHS:
-    SETTINGS_PATHS = settings.SETTINGS_PATHS
-else:
-    SETTINGS_PATHS = []
+from npm_mjs.tools import get_last_run, set_last_run
+from npm_mjs.paths import SETTINGS_PATHS, TRANSPILE_CACHE_PATH
 
 
 def install_npm(force, stdout):
-    change_times = [
-        0,
-    ]
+    change_times = [0]
     for path in SETTINGS_PATHS:
         change_times.append(os.path.getmtime(path))
     settings_change = max(change_times)
@@ -55,6 +48,7 @@ def install_npm(force, stdout):
         if "SUDO_UID" in os.environ:
             del os.environ["SUDO_UID"]
         os.environ["npm_config_unsafe_perm"] = "true"
+        os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
         call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
         signals.post_npm_install.send(sender=None)
         npm_install = True
