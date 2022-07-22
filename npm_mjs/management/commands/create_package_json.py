@@ -4,14 +4,7 @@ from json_minify import json_minify
 from django.core.management.base import BaseCommand
 from django.apps import apps as django_apps
 
-from django.conf import settings
-
-if settings.PROJECT_PATH:
-    PROJECT_PATH = settings.PROJECT_PATH
-else:
-    PROJECT_PATH = "./"
-
-TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
+from npm_mjs.paths import TRANSPILE_CACHE_PATH
 
 
 def deep_merge_dicts(old_dict, merge_dict, scripts=False):

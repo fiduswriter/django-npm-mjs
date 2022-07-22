@@ -6,7 +6,8 @@ import os
 import shutil
 import time
 import json
-from npm_mjs.tools import get_last_run, set_last_run, PROJECT_PATH, TRANSPILE_CACHE_PATH
+from npm_mjs.paths import PROJECT_PATH, TRANSPILE_CACHE_PATH, STATIC_ROOT
+from npm_mjs.tools import get_last_run, set_last_run
 
 from urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -56,7 +57,7 @@ class Command(BaseCommand):
         npm_install = install_npm(force, self.stdout)
         js_paths = finders.find("js/", True)
         # Remove paths inside of collection dir
-        js_paths = [x for x in js_paths if not x.startswith(settings.STATIC_ROOT)]
+        js_paths = [x for x in js_paths if not x.startswith(STATIC_ROOT)]
         # Reverse list so that overrides function as expected. Static file from
         # first app mentioned in INSTALLED_APPS has preference.
         js_path.reverse()
@@ -244,10 +245,7 @@ class Command(BaseCommand):
             "BASE_URL": transpile_base_url,
             "ENTRIES": entries,
             "STATIC_FRONTEND_FILES": list(
-                map(
-                    lambda x: urljoin(static_base_url, x),
-                    static_frontend_files,
-                )
+                map(lambda x: urljoin(static_base_url, x), static_frontend_files)
             ),
         }
         with open(webpack_config_template_path, "r") as f:
@@ -263,10 +261,7 @@ class Command(BaseCommand):
                 pass
         webpack_config_js = webpack_config_template.replace(
             "window.transpile", json.dumps(transpile)
-        ).replace(
-            "window.settings",
-            json.dumps(settings_dict, default=lambda x: False),
-        )
+        ).replace("window.settings", json.dumps(settings_dict, default=lambda x: False))
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
             with open(WEBPACK_CONFIG_JS_PATH, "w") as f:

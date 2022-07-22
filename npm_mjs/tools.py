@@ -1,16 +1,6 @@
-import os
 import pickle
 
-from django.conf import settings
-
-
-if settings.PROJECT_PATH:
-    PROJECT_PATH = settings.PROJECT_PATH
-else:
-    PROJECT_PATH = "./"
-
-TRANSPILE_CACHE_PATH = os.path.join(PROJECT_PATH, ".transpile/")
-TRANSPILE_TIME_PATH = os.path.join(TRANSPILE_CACHE_PATH, "time")
+from .paths import TRANSPILE_TIME_PATH
 
 _last_run = {}
 

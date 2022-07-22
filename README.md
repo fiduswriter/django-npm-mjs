@@ -29,11 +29,11 @@ Quick start
             'npm_mjs',
         ]
 
-3. Define a `PROJECT_PATH` in the settings as the root folder of the project::
+3. Define a `PROJECT_PATH` in the settings as the root folder of the project (`PROJECT_DIR` will also be accepted)::
 
         PROJECT_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
-4. Define a `SETTINGS_PATHS` in the settings to contain the paths of all setting files (settings.py + any local_settings.pyor similar file you may have defined)::
+4. Define a `SETTINGS_PATHS` in the settings to contain the paths of all setting files (settings.py + any local_settings.py or similar file you may have defined) - this is to transpile again whenever settings have changed::
 
         SETTINGS_PATHS = [os.path.dirname(__file__), ]
 
