@@ -60,7 +60,7 @@ class Command(BaseCommand):
         js_paths = [x for x in js_paths if not x.startswith(STATIC_ROOT)]
         # Reverse list so that overrides function as expected. Static file from
         # first app mentioned in INSTALLED_APPS has preference.
-        js_path.reverse()
+        js_paths.reverse()
 
         transpile_path = os.path.join(PROJECT_PATH, "static-transpile")
 
