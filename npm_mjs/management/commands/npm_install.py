@@ -1,7 +1,8 @@
 import os
+import re
 import shutil
 import time
-from subprocess import call
+from subprocess import call, check_output
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
@@ -48,7 +49,11 @@ def install_npm(force, stdout):
         if "SUDO_UID" in os.environ:
             del os.environ["SUDO_UID"]
         os.environ["npm_config_unsafe_perm"] = "true"
-        os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
+        node_version = int(
+            re.search(r'\d+',str(check_output(["node", "--version"]))).group()
+        )
+        if node_version > 16:
+            os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
         call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
         signals.post_npm_install.send(sender=None)
         npm_install = True
