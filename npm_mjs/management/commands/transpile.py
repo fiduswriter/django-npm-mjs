@@ -142,11 +142,7 @@ class Command(BaseCommand):
             dirname = os.path.dirname(outfile)
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
-                shutil.copyfile(sourcefile, outfile)
-            elif not os.path.isfile(outfile):
-                shutil.copyfile(sourcefile, outfile)
-            elif os.path.getmtime(outfile) < os.path.getmtime(sourcefile):
-                shutil.copyfile(sourcefile, outfile)
+            shutil.copyfile(sourcefile, outfile)
             # Check for plugin connectors
             if relative_path[:8] == "plugins/":
                 if dirname not in plugin_dirs:
