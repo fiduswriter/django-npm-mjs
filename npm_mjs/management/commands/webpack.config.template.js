@@ -19,7 +19,7 @@ if (settings.DEBUG) {
 }
 
 module.exports = { // eslint-disable-line no-undef
-    mode: settings.DEBUG ? 'development' : 'production',
+    mode: settings.DEBUG ? "development" : "production",
     module: {
         rules: [baseRule]
     },
