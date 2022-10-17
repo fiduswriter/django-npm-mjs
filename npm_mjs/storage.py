@@ -1,18 +1,25 @@
 import os
 import posixpath
 import re
-from urllib.parse import unquote, urldefrag, urljoin
+from urllib.parse import unquote
+from urllib.parse import urldefrag
+from urllib.parse import urljoin
 
-from django.contrib.staticfiles.storage import ManifestStaticFilesStorage as DefaultManifestStaticFilesStorage
-from django.contrib.staticfiles.storage import HashedFilesMixin
 from django.conf import settings
+from django.contrib.staticfiles.storage import HashedFilesMixin
+from django.contrib.staticfiles.storage import (
+    ManifestStaticFilesStorage as DefaultManifestStaticFilesStorage,
+)
+
 
 def add_js_static_pattern(pattern):
     if pattern[0] == "*.js":
-        templates = pattern[1] + ((
-            '(?P<matched>staticUrl\\([\'"]{0,1}\\s*(?P<url>.*?)["\']{0,1}\\))',
-            "'%(url)s'",
-        ))
+        templates = pattern[1] + (
+            (
+                "(?P<matched>staticUrl\\(['\"]{0,1}\\s*(?P<url>.*?)[\"']{0,1}\\))",
+                "'%(url)s'",
+            )
+        )
         pattern = (pattern[0], templates)
     return pattern
 
@@ -69,7 +76,7 @@ class ManifestStaticFilesStorage(DefaultManifestStaticFilesStorage):
             )
 
             transformed_url = "/".join(
-                url_path.split("/")[:-1] + hashed_url.split("/")[-1:]
+                url_path.split("/")[:-1] + hashed_url.split("/")[-1:],
             )
 
             # Restore the fragment that was stripped off earlier.

@@ -2,15 +2,18 @@ import os
 import re
 import shutil
 import time
-from subprocess import call, check_output
+from subprocess import call
+from subprocess import check_output
 
+from django.apps import apps as django_apps
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.apps import apps as django_apps
 
 from npm_mjs import signals
-from npm_mjs.tools import get_last_run, set_last_run
-from npm_mjs.paths import SETTINGS_PATHS, TRANSPILE_CACHE_PATH
+from npm_mjs.paths import SETTINGS_PATHS
+from npm_mjs.paths import TRANSPILE_CACHE_PATH
+from npm_mjs.tools import get_last_run
+from npm_mjs.tools import set_last_run
 
 
 def install_npm(force, stdout):
@@ -30,7 +33,8 @@ def install_npm(force, stdout):
         app_package_path = os.path.join(config.path, "package.json")
         if os.path.exists(app_package_path):
             app_package_change = max(
-                os.path.getmtime(app_package_path), app_package_change
+                os.path.getmtime(app_package_path),
+                app_package_change,
             )
     npm_install = False
     if (
@@ -50,7 +54,7 @@ def install_npm(force, stdout):
             del os.environ["SUDO_UID"]
         os.environ["npm_config_unsafe_perm"] = "true"
         node_version = int(
-            re.search(r'\d+',str(check_output(["node", "--version"]))).group()
+            re.search(r"\d+", str(check_output(["node", "--version"]))).group(),
         )
         if node_version > 16:
             os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"

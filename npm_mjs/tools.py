@@ -10,7 +10,7 @@ def load_last_name():
     try:
         with open(TRANSPILE_TIME_PATH, "rb") as f:
             _last_run = {**_last_run, **pickle.load(f)}
-    except (EOFError, IOError, TypeError):
+    except (EOFError, OSError, TypeError):
         pass
 
 

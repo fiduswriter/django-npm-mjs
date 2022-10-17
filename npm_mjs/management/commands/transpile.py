@@ -1,24 +1,24 @@
-from io import open
-
-import subprocess
-from subprocess import call
+import json
 import os
 import shutil
+import subprocess
 import time
-import json
-from npm_mjs.paths import PROJECT_PATH, TRANSPILE_CACHE_PATH, STATIC_ROOT
-from npm_mjs.tools import set_last_run
-
+from subprocess import call
 from urllib.parse import urljoin
-from django.core.management.base import BaseCommand
-from django.contrib.staticfiles import finders
-from django.conf import settings
-from django.templatetags.static import PrefixNode
-from django.apps import apps
 
-from .npm_install import install_npm
+from django.apps import apps
+from django.conf import settings
+from django.contrib.staticfiles import finders
+from django.core.management.base import BaseCommand
+from django.templatetags.static import PrefixNode
+
 from .collectstatic import Command as CSCommand
+from .npm_install import install_npm
 from npm_mjs import signals
+from npm_mjs.paths import PROJECT_PATH
+from npm_mjs.paths import STATIC_ROOT
+from npm_mjs.paths import TRANSPILE_CACHE_PATH
+from npm_mjs.tools import set_last_run
 
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
@@ -28,9 +28,9 @@ OLD_WEBPACK_CONFIG_JS = ""
 WEBPACK_CONFIG_JS_PATH = os.path.join(TRANSPILE_CACHE_PATH, "webpack.config.js")
 
 try:
-    with open(WEBPACK_CONFIG_JS_PATH, "r") as file:
+    with open(WEBPACK_CONFIG_JS_PATH) as file:
         OLD_WEBPACK_CONFIG_JS = file.read()
-except IOError:
+except OSError:
     pass
 
 
@@ -67,7 +67,7 @@ class Command(BaseCommand):
         if os.path.exists(transpile_path):
             files = []
             for js_path in js_paths:
-                for root, dirnames, filenames in os.walk(js_path):
+                for root, _dirnames, filenames in os.walk(js_path):
                     for filename in filenames:
                         files.append(os.path.join(root, filename))
             newest_file = max(files, key=os.path.getmtime)
@@ -90,12 +90,10 @@ class Command(BaseCommand):
         os.makedirs(out_dir)
         with open(os.path.join(transpile_path, "README.txt"), "w") as f:
             f.write(
-                (
-                    "These files have been automatically generated. "
-                    "DO NOT EDIT THEM! \n Changes will be overwritten. Edit "
-                    "the original files in one of the django apps, and run "
-                    "./manage.py transpile."
-                )
+                "These files have been automatically generated. "
+                "DO NOT EDIT THEM! \n Changes will be overwritten. Edit "
+                "the original files in one of the django apps, and run "
+                "./manage.py transpile.",
             )
 
         mainfiles = []
@@ -104,7 +102,7 @@ class Command(BaseCommand):
         for path in js_paths:
             for mainfile in (
                 subprocess.check_output(
-                    ["find", path, "-type", "f", "-name", "*.mjs", "-print"]
+                    ["find", path, "-type", "f", "-name", "*.mjs", "-print"],
                 )
                 .decode("utf-8")
                 .split("\n")[:-1]
@@ -112,7 +110,7 @@ class Command(BaseCommand):
                 mainfiles.append(mainfile)
             for sourcefile in (
                 subprocess.check_output(
-                    ["find", path, "-type", "f", "-wholename", "*js"]
+                    ["find", path, "-type", "f", "-wholename", "*js"],
                 )
                 .decode("utf-8")
                 .split("\n")[:-1]
@@ -176,7 +174,7 @@ class Command(BaseCommand):
                 index_file.write(index_js)
                 index_file.close()
             else:
-                index_file = open(outfile, "r")
+                index_file = open(outfile)
                 old_index_js = index_file.read()
                 index_file.close()
                 if old_index_js != index_js:
@@ -227,7 +225,7 @@ class Command(BaseCommand):
                 "ignore_patterns": ["js/", "admin/"],
                 "use_default_ignore_patterns": True,
                 "post_process": True,
-            }
+            },
         )
         found_files = find_static.collect()
         static_frontend_files = (
@@ -240,11 +238,11 @@ class Command(BaseCommand):
             "VERSION": start,
             "BASE_URL": transpile_base_url,
             "ENTRIES": entries,
-            "STATIC_FRONTEND_FILES": list(
-                map(lambda x: urljoin(static_base_url, x), static_frontend_files)
-            ),
+            "STATIC_FRONTEND_FILES": [
+                urljoin(static_base_url, x) for x in static_frontend_files
+            ],
         }
-        with open(webpack_config_template_path, "r") as f:
+        with open(webpack_config_template_path) as f:
             webpack_config_template = f.read()
         settings_dict = {}
         for var in dir(settings):
@@ -256,7 +254,8 @@ class Command(BaseCommand):
             except AttributeError:
                 pass
         webpack_config_js = webpack_config_template.replace(
-            "window.transpile", json.dumps(transpile)
+            "window.transpile",
+            json.dumps(transpile),
         ).replace("window.settings", json.dumps(settings_dict, default=lambda x: False))
 
         if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:

@@ -1,8 +1,9 @@
-import os
 import json
-from json_minify import json_minify
-from django.core.management.base import BaseCommand
+import os
+
 from django.apps import apps as django_apps
+from django.core.management.base import BaseCommand
+from json_minify import json_minify
 
 from npm_mjs.paths import TRANSPILE_CACHE_PATH
 
@@ -37,7 +38,7 @@ class Command(BaseCommand):
             try:
                 with open(app_package_path) as data_file:
                     data = json.loads(json_minify(data_file.read()))
-            except IOError:
+            except OSError:
                 continue
             deep_merge_dicts(package, data)
         if not os.path.exists(TRANSPILE_CACHE_PATH):

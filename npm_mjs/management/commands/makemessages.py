@@ -1,13 +1,12 @@
 import os
-import tempfile
 import shutil
+import tempfile
 import urllib
 
-from django.core.management.commands import makemessages
-from django.core.management import call_command
-from django.core.management.utils import popen_wrapper
-
 from base.management import BaseCommand
+from django.core.management import call_command
+from django.core.management.commands import makemessages
+from django.core.management.utils import popen_wrapper
 
 # This makes makemessages create both translations for Python and JavaScript
 # code in one go.
@@ -43,15 +42,11 @@ class Command(makemessages.Command, BaseCommand):
                 # We need to copy the JS files first, as otherwise babel will
                 # attempt to read package.json files in subdirs, such as
                 # base/package.json
-                in_path = urllib.parse.urljoin(
-                    self.temp_dir_in + "/", file.dirpath
-                )
+                in_path = urllib.parse.urljoin(self.temp_dir_in + "/", file.dirpath)
                 os.makedirs(in_path, exist_ok=True)
                 in_file = urllib.parse.urljoin(in_path + "/", file.file)
                 shutil.copy2(file.path, in_file)
-                out_path = urllib.parse.urljoin(
-                    self.temp_dir_out + "/", file.dirpath
-                )
+                out_path = urllib.parse.urljoin(self.temp_dir_out + "/", file.dirpath)
                 file.dirpath = out_path
             os.chdir(".transpile/")
             out, err, status = popen_wrapper(
@@ -63,7 +58,7 @@ class Command(makemessages.Command, BaseCommand):
                     "--out-dir",
                     self.temp_dir_out,
                     self.temp_dir_in,
-                ]
+                ],
             )
             os.chdir("../")
 
