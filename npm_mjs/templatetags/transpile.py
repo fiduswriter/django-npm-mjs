@@ -4,6 +4,7 @@ from urllib.parse import quote, urljoin
 from django import template
 from django.templatetags.static import StaticNode, PrefixNode
 from django.apps import apps
+from django.contrib.staticfiles.storage import ManifestStaticFilesStorage
 
 from npm_mjs.tools import get_last_run
 
@@ -16,8 +17,10 @@ class StaticTranspileNode(StaticNode):
         path = re.sub(r"^js/(.*)\.mjs", r"js/\1.js", path)
         if apps.is_installed("django.contrib.staticfiles"):
             from django.contrib.staticfiles.storage import staticfiles_storage
-
-            return staticfiles_storage.url(path) + "?v=%s" % get_last_run("transpile")
+            if isinstance(staticfiles_storage, ManifestStaticFilesStorage):
+                return staticfiles_storage.url(path)
+            else:
+                return staticfiles_storage.url(path) + "?v=%s" % get_last_run("transpile")
         else:
             return urljoin(
                 PrefixNode.handle_simple("STATIC_URL"), quote(path)

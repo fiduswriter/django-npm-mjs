@@ -61,7 +61,7 @@ You can continue to load other resources such as CSS files as before using the `
 
 
 NPM.JS dependencies
------------
+-------------------
 
 1. Add package.json files into one or more of your apps. All package.json files will be merged.
 
@@ -72,7 +72,7 @@ NPM.JS dependencies
 4. Run `./manage.py runserver`.
 
 Referring to the transpile version within JavaScript sources
-------
+------------------------------------------------------------
 
 In your JavaScript sources, you can refer to the version string of the last transpile run like this::
 
@@ -81,3 +81,20 @@ In your JavaScript sources, you can refer to the version string of the last tran
 For example::
 
         let downloadJS = `download.js?v=${transpile.VERSION}` // Latest version of transpiled version of download.mjs
+
+
+ManifestStaticFilesStorage
+--------------------------
+If you use `ManifestStaticFilesStorage`, import it from `npm_mjs.storage` like this:
+
+```py
+from npm_mjs.storage import ManifestStaticFilesStorage
+```
+
+If you use that version, you can refer to other static files within your JavaScript files using the `staticUrl()` function like this:
+
+```js
+const cssUrl = staticUrl('/css/document.css')
+```
+
+Note that you will need to use absolute paths starting from the `STATIC_ROOT` for the `staticUrl()` function. Different from the default `ManifestStaticFilesStorage`, our version will generally interprete file urls starting with a slash as being relative to the `STATIC_ROOT`.

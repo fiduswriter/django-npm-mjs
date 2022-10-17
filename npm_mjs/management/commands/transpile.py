@@ -7,7 +7,7 @@ import shutil
 import time
 import json
 from npm_mjs.paths import PROJECT_PATH, TRANSPILE_CACHE_PATH, STATIC_ROOT
-from npm_mjs.tools import get_last_run, set_last_run
+from npm_mjs.tools import set_last_run
 
 from urllib.parse import urljoin
 from django.core.management.base import BaseCommand
@@ -237,7 +237,7 @@ class Command(BaseCommand):
         )
         transpile = {
             "OUT_DIR": out_dir,
-            "VERSION": get_last_run("transpile"),
+            "VERSION": start,
             "BASE_URL": transpile_base_url,
             "ENTRIES": entries,
             "STATIC_FRONTEND_FILES": list(

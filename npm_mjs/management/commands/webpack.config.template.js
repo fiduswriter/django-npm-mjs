@@ -14,8 +14,15 @@ const baseRule = {
     }
 }
 
+const predefinedVariables = {
+    "transpile_VERSION": transpile.VERSION
+}
+
 if (settings.DEBUG) {
     baseRule.exclude = /node_modules/
+    predefinedVariables.staticUrl = `(url => (${settings.STATIC_URL} + url).replace(/[\/]+/g, '/'))`
+} else if (settings.STATICFILES_STORAGE !== "npm_mjs.storage.ManifestStaticFilesStorage") {
+    predefinedVariables.staticUrl = `(url => (${settings.STATIC_URL} + url).replace(/[\/]+/g, '/') + "?v=" + transpile_VERSION)`
 }
 
 module.exports = { // eslint-disable-line no-undef
@@ -29,9 +36,7 @@ module.exports = { // eslint-disable-line no-undef
         publicPath: transpile.BASE_URL
     },
     plugins: [
-        new webpack.DefinePlugin({
-            "transpile_VERSION": transpile.VERSION
-        })
+        new webpack.DefinePlugin(predefinedVariables)
     ],
     entry: transpile.ENTRIES
 }

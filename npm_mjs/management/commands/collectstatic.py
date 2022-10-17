@@ -1,9 +1,11 @@
 from django.contrib.staticfiles.management.commands.collectstatic import (
     Command as CollectStaticCommand,
 )
+from django.apps import apps
 
 
 class Command(CollectStaticCommand):
+
     def set_options(self, *args, **options):
         return_value = super(Command, self).set_options(*args, **options)
         self.ignore_patterns += [

@@ -15,6 +15,7 @@ def load_last_name():
 
 
 def get_last_run(name):
+    global _last_run
     if name not in _last_run:
         load_last_name()
         if name not in _last_run:
