@@ -20,9 +20,9 @@ const predefinedVariables = {
 
 if (settings.DEBUG) {
     baseRule.exclude = /node_modules/
-    predefinedVariables.staticUrl = `(url => (${settings.STATIC_URL} + url).replace(/[\/]+/g, '/'))`
+    predefinedVariables.staticUrl = `(url => ${settings.STATIC_URL} + url)`
 } else if (settings.STATICFILES_STORAGE !== "npm_mjs.storage.ManifestStaticFilesStorage") {
-    predefinedVariables.staticUrl = `(url => (${settings.STATIC_URL} + url).replace(/[\/]+/g, '/') + "?v=" + transpile_VERSION)`
+    predefinedVariables.staticUrl = `(url => ${settings.STATIC_URL} + url + "?v=" + ${transpile.VERSION})`
 }
 
 module.exports = { // eslint-disable-line no-undef
