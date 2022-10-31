@@ -11,7 +11,7 @@ os.chdir(os.path.normpath(os.path.join(__file__, os.pardir)))
 
 setup(
     name="django-npm-mjs",
-    version="2.3.1",
+    version="2.3.2",
     packages=find_packages(),
     include_package_data=True,
     license="LGPL License",
