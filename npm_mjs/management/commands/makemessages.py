@@ -2,16 +2,17 @@ import os
 import re
 import shutil
 import tempfile
-import urllib
 
 from base.management import BaseCommand
-from django.core.management import call_command
 from django.core.management.commands import makemessages
-from django.core.management.utils import popen_wrapper
-from django.utils.translation import templatize
 from django.utils.functional import cached_property
-from django.utils.jslex import JsLexer, Tok
-JsLexer.both_before.append(Tok("template", r"`([^\\]|(\\(.|\n)))*?`", next="div"),)
+from django.utils.jslex import JsLexer
+from django.utils.jslex import Tok
+from django.utils.translation import templatize
+
+JsLexer.both_before.append(
+    Tok("template", r"`([^\\]|(\\(.|\n)))*?`", next="div"),
+)
 
 # This makes makemessages create both translations for Python and JavaScript
 # code in one go.
@@ -54,12 +55,12 @@ def prepare_js_for_gettext(js):
                 tok = '"' + guts + '"'
         elif name == "template":
             # Split the template string into chunks using the ${...} pattern
-            chunks = re.findall(r'\${(.*?)}', tok)
+            chunks = re.findall(r"\${(.*?)}", tok)
             # Concatenate the chunks with "+"
             for chunk in chunks:
-                tok = tok.replace('${' + chunk + '}', '" + ' + chunk + ' + "', 1)
+                tok = tok.replace("${" + chunk + "}", '" + ' + chunk + ' + "', 1)
             # Replace backtick-quotes with double-quotes.
-            tok = '"' + tok[1:-1] +'"'
+            tok = '"' + tok[1:-1] + '"'
         elif name == "id":
             # C can't deal with Unicode escapes in identifiers.  We don't
             # need them for gettext anyway, so replace them with something
@@ -70,7 +71,6 @@ def prepare_js_for_gettext(js):
 
 
 class BuildFile(makemessages.BuildFile):
-
     @cached_property
     def is_templatized(self):
         if self.domain == "djangojs":
@@ -101,11 +101,11 @@ class BuildFile(makemessages.BuildFile):
     def cleanup(self):
         pass
 
+
 class Command(makemessages.Command, BaseCommand):
     build_file_class = BuildFile
 
     def handle(self, *args, **options):
-        #call_command("transpile")
         options["ignore_patterns"] += [
             "venv",
             ".direnv",
@@ -120,41 +120,3 @@ class Command(makemessages.Command, BaseCommand):
         super().handle(*args, **options)
         shutil.rmtree(self.temp_dir_in)
         shutil.rmtree(self.temp_dir_out)
-
-    # def process_locale_dir(self, locale_dir, files):
-    #     if self.domain == "djangojs":
-    #         for file in files:
-    #             # We need to copy the JS files first, as otherwise babel will
-    #             # attempt to read package.json files in subdirs, such as
-    #             # base/package.json
-    #             in_path = urllib.parse.urljoin(self.temp_dir_in + "/", file.dirpath)
-    #             os.makedirs(in_path, exist_ok=True)
-    #             in_file = urllib.parse.urljoin(in_path + "/", file.file)
-    #             shutil.copy2(file.path, in_file)
-    #             out_path = urllib.parse.urljoin(self.temp_dir_out + "/", file.dirpath)
-    #             file.dirpath = out_path
-    #         os.chdir(".transpile/")
-    #         out, err, status = popen_wrapper(
-    #             [
-    #                 "npm",
-    #                 "run",
-    #                 "babel-transform-template-literals",
-    #                 "--",
-    #                 "--out-dir",
-    #                 self.temp_dir_out,
-    #                 self.temp_dir_in,
-    #             ],
-    #         )
-    #         os.chdir("../")
-    #
-    #     super().process_locale_dir(locale_dir, files)
-    #
-    # def write_po_file(self, potfile, locale):
-    #     if self.domain == "djangojs":
-    #         with open(potfile, encoding="utf-8") as fp:
-    #             msgs = fp.read()
-    #         # Remove temp dir path info
-    #         msgs = msgs.replace(self.temp_dir_out + "/", "")
-    #         with open(potfile, "w", encoding="utf-8") as fp:
-    #             fp.write(msgs)
-    #     super().write_po_file(potfile, locale)
