@@ -36,5 +36,4 @@ urls = {repository = "https://github.com/fiduswriter/django-npm-mjs"}
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]
-version = {file = "fiduswriter/version.txt"}
 dependencies = {file = "requirements.txt"}
