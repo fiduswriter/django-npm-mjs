@@ -1,0 +1,40 @@
+[build-system]
+requires = [
+  "setuptools>=65.6.3",
+  "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-npm-mjs"
+version = "2.3.3"
+description = "A Django package to use npm.js dependencies and transpile ES2015+"
+license = {text = "LGPL-3.0-or-later"}
+readme = "README.md"
+authors = [
+  {name="Johannes Wilm", email="johannes@fiduswriter.org"}
+]
+classifiers = [
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 3.2",
+  "Framework :: Django :: 4.0",
+  "Framework :: Django :: 4.1",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content"
+]
+urls = {repository = "https://github.com/fiduswriter/django-npm-mjs"}
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+version = {file = "fiduswriter/version.txt"}
+dependencies = {file = "requirements.txt"}
