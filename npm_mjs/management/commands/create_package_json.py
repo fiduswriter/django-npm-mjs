@@ -1,9 +1,9 @@
 import json
 import os
 
+import pyjson5
 from django.apps import apps as django_apps
 from django.core.management.base import BaseCommand
-from json_minify import json_minify
 
 from npm_mjs.paths import TRANSPILE_CACHE_PATH
 
@@ -34,11 +34,15 @@ class Command(BaseCommand):
         package = {}
         configs = django_apps.get_app_configs()
         for config in configs:
-            app_package_path = os.path.join(config.path, "package.json")
-            try:
-                with open(app_package_path) as data_file:
-                    data = json.loads(json_minify(data_file.read()))
-            except OSError:
+            json5_package_path = os.path.join(config.path, "package.json5")
+            json_package_path = os.path.join(config.path, "package.json")
+            if os.path.isfile(json5_package_path):
+                with open(json5_package_path) as data_file:
+                    data = pyjson5.decode(data_file.read())
+            elif os.path.isfile(json_package_path):
+                with open(json_package_path) as data_file:
+                    data = json.loads(data_file.read())
+            else:
                 continue
             deep_merge_dicts(package, data)
         if not os.path.exists(TRANSPILE_CACHE_PATH):

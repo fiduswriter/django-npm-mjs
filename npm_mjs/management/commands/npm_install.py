@@ -16,7 +16,7 @@ from npm_mjs.tools import get_last_run
 from npm_mjs.tools import set_last_run
 
 
-def install_npm(force, stdout):
+def install_npm(force, stdout, post_npm_signal=True):
     change_times = [0]
     for path in SETTINGS_PATHS:
         change_times.append(os.path.getmtime(path))
@@ -59,7 +59,8 @@ def install_npm(force, stdout):
         if node_version > 16:
             os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
         call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
-        signals.post_npm_install.send(sender=None)
+        if post_npm_signal:
+            signals.post_npm_install.send(sender=None)
         npm_install = True
     return npm_install
 
@@ -76,9 +77,13 @@ class Command(BaseCommand):
             help="Force npm install even if no change is detected.",
         )
 
+        parser.add_argument(
+            "--nosignal",
+            action="store_false",
+            dest="post_npm_signal",
+            default=True,
+            help="Send a signal after finishing npm install.",
+        )
+
     def handle(self, *args, **options):
-        if options["force"]:
-            force = True
-        else:
-            force = False
-        install_npm(force, self.stdout)
+        install_npm(options["force"], self.stdout, options["post_npm_signal"])

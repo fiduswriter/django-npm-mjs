@@ -63,9 +63,9 @@ You can continue to load other resources such as CSS files as before using the `
 NPM.JS dependencies
 -------------------
 
-1. Add package.json files into one or more of your apps. All package.json files will be merged.
+1. Add package.json or package.json5 files into one or more of your apps. All package files will be merged.
 
-2. Import in your JS files from any of the npm modules specified in your package.json files.
+2. Import in your JS files from any of the npm modules specified in your package files.
 
 3. Run `./manage.py transpile`.
 
