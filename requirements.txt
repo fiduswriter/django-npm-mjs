@@ -1,2 +1,2 @@
 Django >= 3.2
-pyjson5 == 1.6.4
+pyjson5 == 1.6.6

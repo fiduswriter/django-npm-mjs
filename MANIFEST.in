@@ -1,6 +1,6 @@
 include LICENSE
 include README.md
 include requirements.txt
-include npm_mjs/package.json
+include npm_mjs/package.json5
 include npm_mjs/templates/npm_mjs/static_urls_js.html
 include npm_mjs/management/commands/webpack.config.template.js
