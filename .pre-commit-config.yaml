@@ -51,17 +51,17 @@ repos:
   - repo: https://github.com/asottile/yesqa
     rev: v1.5.0
     hooks:
-      -   id: yesqa
+      - id: yesqa
   - repo: https://github.com/asottile/add-trailing-comma
     rev: v3.1.0
     hooks:
-      -   id: add-trailing-comma
-          args:
-            - --py36-plus
-  - repo: https://github.com/perfa/pycln # See https://github.com/hadialqattan/pycln/issues/221
-    rev: d96e759
+      - id: add-trailing-comma
+        args:
+          - --py36-plus
+  - repo: https://github.com/hadialqattan/pycln
+    rev: v2.4.0
     hooks:
-      -   id: pycln
+      - id: pycln
   - repo: https://github.com/pycqa/flake8
     rev: 6.1.0
     hooks:
