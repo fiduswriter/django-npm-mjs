@@ -1,9 +1,9 @@
+import hashlib
+import json
 import os
-import re
 import shutil
 import time
 from subprocess import call
-from subprocess import check_output
 
 from django.apps import apps as django_apps
 from django.core.management import call_command
@@ -16,59 +16,68 @@ from npm_mjs.tools import get_last_run
 from npm_mjs.tools import set_last_run
 
 
+def get_package_hash():
+    """Generate a hash of all package.json files"""
+    hash_md5 = hashlib.md5()
+    for config in django_apps.get_app_configs():
+        for filename in ["package.json", "package.json5"]:
+            filepath = os.path.join(config.path, filename)
+            if os.path.exists(filepath):
+                with open(filepath, "rb") as f:
+                    hash_md5.update(f.read())
+    return hash_md5.hexdigest()
+
+
 def install_npm(force, stdout, post_npm_signal=True):
     change_times = [0]
     for path in SETTINGS_PATHS:
         change_times.append(os.path.getmtime(path))
     settings_change = max(change_times)
-    package_path = os.path.join(TRANSPILE_CACHE_PATH, "package.json")
-    rspack_bin_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules/.bin/rspack")
-    if os.path.exists(package_path) and os.path.exists(rspack_bin_path):
-        package_change = os.path.getmtime(package_path)
+    package_hash = get_package_hash()
+    cache_file = os.path.join(TRANSPILE_CACHE_PATH, "package_hash.json")
+
+    if os.path.exists(cache_file):
+        with open(cache_file) as f:
+            cached_hash = json.load(f).get("hash")
     else:
-        package_change = -1
-    app_package_change = 0
-    configs = django_apps.get_app_configs()
-    for config in configs:
-        app_package_path = os.path.join(config.path, "package.json")
-        if os.path.exists(app_package_path):
-            app_package_change = max(
-                os.path.getmtime(app_package_path),
-                app_package_change,
-            )
-        else:
-            app_package_path = os.path.join(config.path, "package.json5")
-            if os.path.exists(app_package_path):
-                app_package_change = max(
-                    os.path.getmtime(app_package_path),
-                    app_package_change,
-                )
+        cached_hash = None
+
     npm_install = False
     if (
         settings_change > get_last_run("npm_install")
-        or app_package_change > package_change
+        or package_hash != cached_hash
         or force
     ):
-        stdout.write("Installing npm dependencies...")
+        stdout.write("Installing pnpm dependencies...")
         if not os.path.exists(TRANSPILE_CACHE_PATH):
             os.makedirs(TRANSPILE_CACHE_PATH)
         set_last_run("npm_install", int(round(time.time())))
-        node_modules_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules")
-        if os.path.exists(node_modules_path):
-            shutil.rmtree(node_modules_path, ignore_errors=True)
         call_command("create_package_json")
-        if "SUDO_UID" in os.environ:
-            del os.environ["SUDO_UID"]
-        os.environ["npm_config_unsafe_perm"] = "true"
-        node_version = int(
-            re.search(r"\d+", str(check_output(["node", "--version"]))).group(),
-        )
-        if node_version > 16:
-            os.environ["NODE_OPTIONS"] = "--openssl-legacy-provider"
-        call(["npm", "install"], cwd=TRANSPILE_CACHE_PATH)
+
+        # Use pnpm instead of npm
+        if shutil.which("pnpm") is None:
+            stdout.write("Installing pnpm...")
+            call(["npm", "install", "-g", "pnpm"], cwd=TRANSPILE_CACHE_PATH)
+
+        # Check if pnpm-lock.yaml exists
+        lockfile_path = os.path.join(TRANSPILE_CACHE_PATH, "pnpm-lock.yaml")
+        if os.path.exists(lockfile_path):
+            stdout.write("Installing dependencies with frozen lockfile...")
+            call(["pnpm", "install", "--frozen-lockfile"], cwd=TRANSPILE_CACHE_PATH)
+        else:
+            stdout.write("Installing dependencies and generating lockfile...")
+            call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+
+        # Update cache
+        with open(cache_file, "w") as f:
+            json.dump({"hash": package_hash}, f)
+
         if post_npm_signal:
             signals.post_npm_install.send(sender=None)
         npm_install = True
+    else:
+        stdout.write("No changes detected, skipping pnpm install.")
+
     return npm_install
 
 
