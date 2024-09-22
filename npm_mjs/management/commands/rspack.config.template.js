@@ -1,4 +1,4 @@
-const rspack = require('@rspack/core') // eslint-disable-line no-undef
+const rspack = require("@rspack/core") // eslint-disable-line no-undef
 
 const settings = window.settings // Replaced by django-npm-mjs
 const transpile = window.transpile // Replaced by django-npm-mjs
