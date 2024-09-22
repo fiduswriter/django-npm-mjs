@@ -22,8 +22,8 @@ def install_npm(force, stdout, post_npm_signal=True):
         change_times.append(os.path.getmtime(path))
     settings_change = max(change_times)
     package_path = os.path.join(TRANSPILE_CACHE_PATH, "package.json")
-    webpack_bin_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules/.bin/webpack")
-    if os.path.exists(package_path) and os.path.exists(webpack_bin_path):
+    rspack_bin_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules/.bin/rspack")
+    if os.path.exists(package_path) and os.path.exists(rspack_bin_path):
         package_change = os.path.getmtime(package_path)
     else:
         package_change = -1
@@ -36,6 +36,13 @@ def install_npm(force, stdout, post_npm_signal=True):
                 os.path.getmtime(app_package_path),
                 app_package_change,
             )
+        else:
+            app_package_path = os.path.join(config.path, "package.json5")
+            if os.path.exists(app_package_path):
+                app_package_change = max(
+                    os.path.getmtime(app_package_path),
+                    app_package_change,
+                )
     npm_install = False
     if (
         settings_change > get_last_run("npm_install")

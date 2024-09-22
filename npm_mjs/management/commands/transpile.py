@@ -23,13 +23,13 @@ from npm_mjs.tools import set_last_run
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
 
-OLD_WEBPACK_CONFIG_JS = ""
+OLD_RSPACK_CONFIG_JS = ""
 
-WEBPACK_CONFIG_JS_PATH = os.path.join(TRANSPILE_CACHE_PATH, "webpack.config.js")
+RSPACK_CONFIG_JS_PATH = os.path.join(TRANSPILE_CACHE_PATH, "rspack.config.js")
 
 try:
-    with open(WEBPACK_CONFIG_JS_PATH) as file:
-        OLD_WEBPACK_CONFIG_JS = file.read()
+    with open(RSPACK_CONFIG_JS_PATH) as file:
+        OLD_RSPACK_CONFIG_JS = file.read()
 except OSError:
     pass
 
@@ -199,14 +199,14 @@ class Command(BaseCommand):
             static_base_url = PrefixNode.handle_simple("STATIC_URL")
         transpile_base_url = urljoin(static_base_url, "js/")
         if (
-            hasattr(settings, "WEBPACK_CONFIG_TEMPLATE")
-            and settings.WEBPACK_CONFIG_TEMPLATE
+            hasattr(settings, "RSPACK_CONFIG_TEMPLATE")
+            and settings.RSPACK_CONFIG_TEMPLATE
         ):
-            webpack_config_template_path = settings.WEBPACK_CONFIG_TEMPLATE
+            rspack_config_template_path = settings.RSPACK_CONFIG_TEMPLATE
         else:
-            webpack_config_template_path = os.path.join(
+            rspack_config_template_path = os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "webpack.config.template.js",
+                "rspack.config.template.js",
             )
         entries = {}
         for mainfile in mainfiles:
@@ -242,8 +242,8 @@ class Command(BaseCommand):
                 urljoin(static_base_url, x) for x in static_frontend_files
             ],
         }
-        with open(webpack_config_template_path) as f:
-            webpack_config_template = f.read()
+        with open(rspack_config_template_path) as f:
+            rspack_config_template = f.read()
         settings_dict = {}
         for var in dir(settings):
             if var in ["DATABASES", "SECRET_KEY"]:
@@ -253,15 +253,15 @@ class Command(BaseCommand):
                 settings_dict[var] = getattr(settings, var)
             except AttributeError:
                 pass
-        webpack_config_js = webpack_config_template.replace(
+        rspack_config_js = rspack_config_template.replace(
             "window.transpile",
             json.dumps(transpile),
         ).replace("window.settings", json.dumps(settings_dict, default=lambda x: False))
 
-        if webpack_config_js is not OLD_WEBPACK_CONFIG_JS:
-            with open(WEBPACK_CONFIG_JS_PATH, "w") as f:
-                f.write(webpack_config_js)
-        call(["./node_modules/.bin/webpack"], cwd=TRANSPILE_CACHE_PATH)
+        if rspack_config_js is not OLD_RSPACK_CONFIG_JS:
+            with open(RSPACK_CONFIG_JS_PATH, "w") as f:
+                f.write(rspack_config_js)
+        call(["./node_modules/.bin/rspack"], cwd=TRANSPILE_CACHE_PATH)
         end = int(round(time.time()))
         self.stdout.write("Time spent transpiling: " + str(end - start) + " seconds")
         signals.post_transpile.send(sender=None)
