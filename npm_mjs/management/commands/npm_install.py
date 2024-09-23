@@ -58,15 +58,8 @@ def install_npm(force, stdout, post_npm_signal=True):
         if shutil.which("pnpm") is None:
             stdout.write("Installing pnpm...")
             call(["npm", "install", "-g", "pnpm"], cwd=TRANSPILE_CACHE_PATH)
-
-        # Check if pnpm-lock.yaml exists
-        lockfile_path = os.path.join(TRANSPILE_CACHE_PATH, "pnpm-lock.yaml")
-        if os.path.exists(lockfile_path):
-            stdout.write("Installing dependencies with frozen lockfile...")
-            call(["pnpm", "install", "--frozen-lockfile"], cwd=TRANSPILE_CACHE_PATH)
-        else:
-            stdout.write("Installing dependencies and generating lockfile...")
-            call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+        stdout.write("Installing dependencies...")
+        call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
 
         # Update cache
         with open(cache_file, "w") as f:
