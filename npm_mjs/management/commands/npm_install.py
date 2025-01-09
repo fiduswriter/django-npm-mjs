@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-import shutil
 import time
 from subprocess import call
 
@@ -54,12 +53,8 @@ def install_npm(force, stdout, post_npm_signal=True):
         set_last_run("npm_install", int(round(time.time())))
         call_command("create_package_json")
 
-        # Use pnpm instead of npm
-        if shutil.which("pnpm") is None:
-            stdout.write("Installing pnpm...")
-            call(["npm", "install", "-g", "pnpm"], cwd=TRANSPILE_CACHE_PATH)
         stdout.write("Installing dependencies...")
-        call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+        call(["npx", "pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
 
         # Update cache
         with open(cache_file, "w") as f:
