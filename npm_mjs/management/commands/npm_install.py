@@ -54,7 +54,7 @@ def install_npm(force, stdout, post_npm_signal=True):
         call_command("create_package_json")
 
         stdout.write("Installing dependencies...")
-        call(["npx", "pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+        call(["npx", "pnpm", "install", "-y"], cwd=TRANSPILE_CACHE_PATH)
 
         # Update cache
         with open(cache_file, "w") as f:
