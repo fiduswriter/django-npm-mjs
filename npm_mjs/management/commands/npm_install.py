@@ -48,7 +48,7 @@ def install_npm(force, stdout, post_npm_signal=True):
         or force
     ):
         stdout.write("Installing pnpm dependencies...")
-        os.makedirs(TRANSPILE_CACHE_PATH, exists_ok=True)
+        os.makedirs(TRANSPILE_CACHE_PATH, exist_ok=True)
         set_last_run("npm_install", int(round(time.time())))
         call_command("create_package_json")
 
