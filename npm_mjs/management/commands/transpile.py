@@ -81,13 +81,12 @@ class Command(BaseCommand):
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path, ignore_errors=True)
         self.stdout.write("Transpiling...")
-        if not os.path.exists(TRANSPILE_CACHE_PATH):
-            os.makedirs(TRANSPILE_CACHE_PATH)
+        os.makedirs(TRANSPILE_CACHE_PATH, exists_ok=True)
         # We reload the file as other values may have changed in the meantime
         set_last_run("transpile", start)
         # Create a static output dir
         out_dir = os.path.join(transpile_path, "js/")
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exists_ok=True)
         with open(os.path.join(transpile_path, "README.txt"), "w") as f:
             f.write(
                 "These files have been automatically generated. "
@@ -125,8 +124,7 @@ class Command(BaseCommand):
         # Apps.
 
         cache_path = os.path.join(TRANSPILE_CACHE_PATH, "js/")
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path)
+        os.makedirs(cache_path, exists_ok=True)
         # Note all cache files so that we can remove outdated files that no
         # longer are in the prject.
         cache_files = []
@@ -138,8 +136,7 @@ class Command(BaseCommand):
             outfile = os.path.join(cache_path, relative_path)
             cache_files.append(outfile)
             dirname = os.path.dirname(outfile)
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+            os.makedirs(dirname, exists_ok=True)
             shutil.copyfile(sourcefile, outfile)
             # Check for plugin connectors
             if relative_path[:8] == "plugins/":

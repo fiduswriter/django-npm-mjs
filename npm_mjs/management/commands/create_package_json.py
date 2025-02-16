@@ -45,8 +45,7 @@ class Command(BaseCommand):
             else:
                 continue
             deep_merge_dicts(package, data)
-        if not os.path.exists(TRANSPILE_CACHE_PATH):
-            os.makedirs(TRANSPILE_CACHE_PATH)
+        os.makedirs(TRANSPILE_CACHE_PATH, exists_ok=True)
         package_path = os.path.join(TRANSPILE_CACHE_PATH, "package.json")
         with open(package_path, "w") as outfile:
             json.dump(package, outfile)
