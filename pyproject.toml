@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-npm-mjs"
-version = "3.1.6"
+version = "3.1.7"
 description = "A Django package to use npm.js dependencies and transpile ES2015+"
 license = "LGPL-3.0-or-later"
 readme = "README.md"
