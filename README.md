@@ -98,3 +98,67 @@ const cssUrl = staticUrl('/css/document.css')
 ```
 
 Note that you will need to use absolute paths starting from the `STATIC_ROOT` for the `staticUrl()` function. Different from the default `ManifestStaticFilesStorage`, our version will generally interprete file urls starting with a slash as being relative to the `STATIC_ROOT`.
+
+Translations
+------------
+
+Commands such as `./manage.py makemessages` and `./manage.py compilemessages` will work as always in Django, with some slightly different defaults. Not specifying any language will default to running with `--all` (all languages). Not specifying any domain will default to running for both "django" and "djangojs" (Python and Javascript files). The `static-transpile` directory will also be ignored by default.
+
+**NOTE: JavaScript files that contain template strings will require at least xgettext version 0.24 or higher. See below for installation instructions.**
+
+
+Install xgettext 0.24
+---------------------
+
+First check which xgettext version your OS comes with:
+
+```bash
+xgettext --version
+```
+
+If it is below version 0.24, you will need to install a newer version. For example in your current virtual environment:
+
+Step 1: Activate Your Virtual Environment
+```bash
+source /path/to/venv/bin/activate
+```
+
+Step 2: Install Build Dependencies
+Install tools required to compile software:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential libtool automake autoconf
+```
+
+Step 3: Download and Extract Gettext 0.24
+
+```bash
+wget https://ftp.gnu.org/pub/gnu/gettext/gettext-0.24.tar.gz
+tar -xzf gettext-0.24.tar.gz
+cd gettext-0.24
+```
+
+Step 4: Configure and Install into the Venv
+Install to your venv's directory using --prefix:
+
+```bash
+./configure --prefix=$VIRTUAL_ENV
+make
+make install
+```
+
+Step 5: Verify Installation
+Ensure the new xgettext is in your venv and check the version:
+
+```bash
+which xgettext  # Should output a path inside your venv
+xgettext --version  # Should show 0.24
+```
+
+Step 6: Cleanup
+
+```bash
+cd ..
+rm -rf gettext-0.24 gettext-0.24.tar.gz
+```
