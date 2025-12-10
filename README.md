@@ -162,3 +162,78 @@ Step 6: Cleanup
 cd ..
 rm -rf gettext-0.24 gettext-0.24.tar.gz
 ```
+
+Testing
+-------
+
+The package includes a comprehensive test suite to ensure reliability and prevent regressions.
+
+### Running Tests
+
+Run all tests using the provided test runner:
+
+```bash
+python runtests.py
+```
+
+Or use Python's unittest directly:
+
+```bash
+python -m unittest discover npm_mjs/tests
+```
+
+If you have pytest installed:
+
+```bash
+pytest
+```
+
+### Critical Regression Tests
+
+The test suite includes specific tests for previously encountered bugs:
+
+- **Double slashes in strings** (`"path//to//file"` should not be treated as comments)
+- **Single quotes inside double-quoted strings** (proper quote conversion)
+- **Long lines** (handling files with line 7, column 178 errors)
+- **URLs in strings and comments** (preserving `https://` patterns)
+
+For more details, see `npm_mjs/tests/README.md`.
+
+### Debugging JSON5 Parse Errors
+
+If you encounter errors when parsing package.json5 files, the parser provides helpful debug output using Python's logging module. The Django management command automatically enables debug mode, which shows:
+
+- The processed content after comment removal and quote conversion
+- The exact line and column where parsing failed
+- The specific error message
+
+Example debug output:
+
+```
+================================================================================
+JSON5 Parser Error - Processed content that failed to parse:
+================================================================================
+ -->   4:   "key": "value with problem",
+================================================================================
+Error at line 4, column 26: Expecting ',' delimiter
+================================================================================
+```
+
+When using the parser directly in your code, you can enable debug output:
+
+```python
+import logging
+from npm_mjs.json5_parser import parse_json5
+
+# Configure logging to see debug output
+logging.basicConfig(level=logging.ERROR, format='%(message)s')
+
+# Enable debug output for troubleshooting
+try:
+    result = parse_json5(content, debug=True)
+except json.JSONDecodeError as e:
+    # Debug info logged as ERROR before exception is raised
+    pass
+```
+
+By default, `debug=False` to keep the output clean in automated scripts and tests. When `debug=True`, error details are logged at the ERROR level using Python's standard logging module.

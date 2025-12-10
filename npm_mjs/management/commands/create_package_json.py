@@ -1,10 +1,10 @@
 import json
 import os
 
-import pyjson5
 from django.apps import apps as django_apps
 from django.core.management.base import BaseCommand
 
+from npm_mjs.json5_parser import parse_json5
 from npm_mjs.paths import TRANSPILE_CACHE_PATH
 
 
@@ -37,10 +37,10 @@ class Command(BaseCommand):
             json5_package_path = os.path.join(config.path, "package.json5")
             json_package_path = os.path.join(config.path, "package.json")
             if os.path.isfile(json5_package_path):
-                with open(json5_package_path) as data_file:
-                    data = pyjson5.decode(data_file.read())
+                with open(json5_package_path, encoding="utf-8") as data_file:
+                    data = parse_json5(data_file.read(), debug=True)
             elif os.path.isfile(json_package_path):
-                with open(json_package_path) as data_file:
+                with open(json_package_path, encoding="utf-8") as data_file:
                     data = json.loads(data_file.read())
             else:
                 continue

@@ -1,2 +1,1 @@
-Django >= 3.2
-pyjson5 == 1.6.9
+Django >= 4.2
