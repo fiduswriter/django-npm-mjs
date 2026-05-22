@@ -5,7 +5,7 @@
   description: "Install dependencies for ES6 transpilation",
   private: true,
   dependencies: {
-    "@rspack/core": "1.6.7",
-    "@rspack/cli": "1.6.7"
+    "@rspack/core": "2.0.2",
+    "@rspack/cli": "2.0.2"
   },
 }

@@ -15,6 +15,8 @@ This package similar to django-compressor in that it treats JavaScript files bef
 
 * It allows for JavaScript plugin hooks between django apps used in cases when a django project can be used both with or without a specific app, and the JavaScript from one app needs to import things from another app.
 
+* The transpiler collects JavaScript from **all discoverable Python packages**, not only `INSTALLED_APPS`. This lets you compile a single bundle before packaging (e.g. in a Debian package or Docker image) and enable or disable plugins later at runtime simply by adding or removing apps from `INSTALLED_APPS`. The production server never needs to transpile again.
+
 
 Quick start
 -----------
@@ -70,6 +72,92 @@ NPM.JS dependencies
 3. Run `./manage.py transpile`.
 
 4. Run `./manage.py runserver`.
+
+
+Plugins
+-------
+
+`django-npm-mjs` provides a built-in plugin system for projects that ship with
+optional Django apps. Instead of editing core code to register a plugin, you drop
+a JavaScript file into a convention-based directory and the transpiler wires it
+up automatically.
+
+### How it works
+
+1. **Discovery at compile time** — `transpile` walks **all** Python packages on
+   `sys.path` and copies every `static/js/plugins/<type>/*.js` file into the
+   build cache. Files named `init.js` are ignored (they are legacy placeholders).
+
+2. **Index generation** — For each `<type>` directory the transpiler writes an
+   `index.js` that imports every discovered module and exports them as a
+   `plugins` array of `[app_name, module_namespace]` tuples:
+
+   ```js
+   import * as my_plugin from "./my_plugin"
+   import * as another from "./another"
+   export const plugins = [
+     ['my_plugin', my_plugin],
+     ['another', another],
+   ]
+   ```
+
+3. **Runtime filtering** — Core pages import `{plugins}` from
+   `../../plugins/<type>` and iterate with:
+
+   ```js
+   plugins.forEach(([app, plugin]) => {
+       if (!this.app.settings.APPS.includes(app)) {
+           return
+       }
+       Object.values(plugin).forEach(pluginExport => {
+           if (typeof pluginExport === "function") {
+               this.plugins[pluginExport.name] = new pluginExport(this)
+               this.plugins[pluginExport.name].init()
+           }
+       })
+   })
+   ```
+
+   The `APPS` filter means **plugins are compiled into the bundle regardless of
+   whether their Django app is in `INSTALLED_APPS`**, but they are only
+   instantiated when the app is enabled.
+
+### Why compile everything?
+
+This design lets you **build a single JavaScript bundle before packaging** (e.g.
+during CI or in a Debian build) and ship it to production. End users can then
+enable or disable bundled plugins by editing `INSTALLED_APPS` in their
+`configuration.py` **without ever running the transpiler on the production
+server**.
+
+### Writing a plugin
+
+Create a JavaScript file inside your Django app's
+`static/js/plugins/<type>/` directory (choose the hook point that matches your
+use case):
+
+```js
+// my_plugin/static/js/plugins/app/my_plugin.js
+export class MyPlugin {
+    constructor(app) {
+        this.app = app
+    }
+
+    init() {
+        // Add a route, register a menu item, attach an event listener, etc.
+    }
+}
+```
+
+You can place files in multiple hook points if needed:
+
+```
+my_plugin/static/js/plugins/app/my_plugin.js
+my_plugin/static/js/plugins/menu/my_plugin.js
+```
+
+Each exported class will be instantiated automatically when the containing app
+is present in `INSTALLED_APPS`.
 
 Referring to the transpile version within JavaScript sources
 ------------------------------------------------------------

@@ -6,9 +6,12 @@ import time
 from subprocess import call
 from urllib.parse import urljoin
 
+import importlib.util
+import pkgutil
+
 from django.apps import apps
 from django.conf import settings
-from django.contrib.staticfiles import finders
+from django.contrib.staticfiles import finders as django_finders
 from django.core.management.base import BaseCommand
 from django.templatetags.static import PrefixNode
 
@@ -19,6 +22,56 @@ from npm_mjs.paths import PROJECT_PATH
 from npm_mjs.paths import STATIC_ROOT
 from npm_mjs.paths import TRANSPILE_CACHE_PATH
 from npm_mjs.tools import set_last_run
+
+class InstalledAppDirectoriesFinder:
+    def find(self, path, all=False):
+        matches = []
+        for _, modname, ispkg in pkgutil.iter_modules():
+            if not ispkg:
+                continue
+            spec = importlib.util.find_spec(modname)
+            if spec is None:
+                continue
+            if spec.origin:
+                package_dir = os.path.dirname(spec.origin)
+            elif spec.submodule_search_locations:
+                package_dir = list(spec.submodule_search_locations)[0]
+            else:
+                continue
+            full_path = os.path.join(package_dir, "static", path)
+            if os.path.isdir(full_path):
+                if all:
+                    matches.append(full_path)
+                else:
+                    return full_path
+        return matches if all else None
+
+
+class AllAppsFinder:
+    def find(self, path, all=False):
+        django_matches = django_finders.find(path, all=all)
+        if all:
+            django_matches = list(django_matches) if django_matches else []
+        else:
+            return (
+                django_matches
+                if django_matches
+                else InstalledAppDirectoriesFinder().find(path, all=False)
+            )
+
+        installed_matches = InstalledAppDirectoriesFinder().find(path, all=True)
+        existing = set(django_matches)
+        for match in installed_matches:
+            if match not in existing:
+                django_matches.append(match)
+                existing.add(match)
+
+        return django_matches
+
+
+finders = AllAppsFinder()
+
+
 
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
@@ -131,8 +184,11 @@ class Command(BaseCommand):
         # Note all plugin dirs and the modules inside of them to crate index.js
         # files inside of them.
         plugin_dirs = {}
+        plugin_names = []
         for sourcefile in sourcefiles:
-            relative_path = sourcefile.split("static/js/")[1]
+
+            [base, relative_path] = sourcefile.split("static/js/")
+            django_app = base.split("/")[-2]
             outfile = os.path.join(cache_path, relative_path)
             cache_files.append(outfile)
             dirname = os.path.dirname(outfile)
@@ -143,8 +199,10 @@ class Command(BaseCommand):
                 if dirname not in plugin_dirs:
                     plugin_dirs[dirname] = []
                 module_name = os.path.splitext(os.path.basename(relative_path))[0]
-                if module_name != "init" and module_name not in plugin_dirs[dirname]:
-                    plugin_dirs[dirname].append(module_name)
+                if module_name != "init":
+                    if f"{dirname}/{django_app}/{module_name}" not in plugin_names:
+                        plugin_dirs[dirname].append([django_app, module_name])
+                        plugin_names.append(f"{dirname}/{django_app}/{module_name}")
 
         for sourcefile in lib_sourcefiles:
             relative_path = sourcefile.split("static-libs/js/")[1]
@@ -162,8 +220,12 @@ class Command(BaseCommand):
         # Write an index.js file for every plugin dir
         for plugin_dir in plugin_dirs:
             index_js = ""
-            for module_name in plugin_dirs[plugin_dir]:
-                index_js += 'export * from "./%s"\n' % module_name
+            for [_django_app, module_name] in plugin_dirs[plugin_dir]:
+                index_js += 'import * as %s from "./%s"\n' % (module_name, module_name)
+            index_js += "export const plugins = [\n"
+            for [django_app, module_name] in plugin_dirs[plugin_dir]:
+                index_js += f"  ['{django_app}', {module_name}],\n"
+            index_js += "]\n"
             outfile = os.path.join(plugin_dir, "index.js")
             cache_files.append(outfile)
             if not os.path.isfile(outfile):
