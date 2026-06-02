@@ -28,18 +28,18 @@ repos:
       - id: python-no-log-warn
       - id: rst-backticks
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.1
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
         args:
-          - --py310-plus
+          - --py312-plus
         exclude: migrations/
   - repo: https://github.com/adamchainz/django-upgrade
     rev: 1.29.1
     hooks:
       - id: django-upgrade
         args:
-          - --target-version=4.2
+          - --target-version=6.0
   - repo: https://github.com/asottile/yesqa
     rev: v1.5.0
     hooks:

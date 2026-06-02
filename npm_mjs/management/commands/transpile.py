@@ -23,6 +23,7 @@ from npm_mjs.paths import STATIC_ROOT
 from npm_mjs.paths import TRANSPILE_CACHE_PATH
 from npm_mjs.tools import set_last_run
 
+
 class InstalledAppDirectoriesFinder:
     def find(self, path, all=False):
         matches = []
@@ -70,8 +71,6 @@ class AllAppsFinder:
 
 
 finders = AllAppsFinder()
-
-
 
 # Run this script every time you update an *.mjs file or any of the
 # modules it loads.
@@ -221,7 +220,10 @@ class Command(BaseCommand):
         for plugin_dir in plugin_dirs:
             index_js = ""
             for [_django_app, module_name] in plugin_dirs[plugin_dir]:
-                index_js += 'import * as %s from "./%s"\n' % (module_name, module_name)
+                index_js += 'import * as {} from "./{}"\n'.format(
+                    module_name,
+                    module_name,
+                )
             index_js += "export const plugins = [\n"
             for [django_app, module_name] in plugin_dirs[plugin_dir]:
                 index_js += f"  ['{django_app}', {module_name}],\n"
