@@ -61,11 +61,12 @@ def install_npm(force, stdout, post_npm_signal=True):
             shutil.rmtree(node_modules_path, ignore_errors=True)
         env = os.environ.copy()
         env["CI"] = "true"
+        pnpm_args = ["install", "--config.strict-dep-builds=false"]
         if which("pnpm"):
-            returncode = call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH, env=env)
+            returncode = call(["pnpm"] + pnpm_args, cwd=TRANSPILE_CACHE_PATH, env=env)
         else:
             returncode = call(
-                ["npx", "-y", "pnpm", "install"],
+                ["npx", "-y", "pnpm"] + pnpm_args,
                 cwd=TRANSPILE_CACHE_PATH,
                 env=env,
             )
