@@ -2,11 +2,13 @@ import hashlib
 import json
 import os
 import time
+from shutil import which
 from subprocess import call
 
 from django.apps import apps as django_apps
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 
 from npm_mjs import signals
 from npm_mjs.paths import SETTINGS_PATHS
@@ -53,7 +55,19 @@ def install_npm(force, stdout, post_npm_signal=True):
         call_command("create_package_json")
 
         stdout.write("Installing dependencies...")
-        call(["npx", "-y", "pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+        if which("pnpm"):
+            returncode = call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+        else:
+            returncode = call(
+                ["npx", "-y", "pnpm", "install"],
+                cwd=TRANSPILE_CACHE_PATH,
+            )
+        if returncode != 0:
+            raise CommandError(
+                "pnpm install failed with exit code %d. "
+                "If you see an ENOTEMPTY error, try clearing the npx cache: "
+                "rm -rf ~/.npm/_npx/" % returncode,
+            )
 
         # Update cache
         with open(cache_file, "w") as f:
