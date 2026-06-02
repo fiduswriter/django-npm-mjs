@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import shutil
 import time
 from shutil import which
 from subprocess import call
@@ -55,12 +56,18 @@ def install_npm(force, stdout, post_npm_signal=True):
         call_command("create_package_json")
 
         stdout.write("Installing dependencies...")
+        node_modules_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules")
+        if os.path.exists(node_modules_path):
+            shutil.rmtree(node_modules_path, ignore_errors=True)
+        env = os.environ.copy()
+        env["CI"] = "true"
         if which("pnpm"):
-            returncode = call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH)
+            returncode = call(["pnpm", "install"], cwd=TRANSPILE_CACHE_PATH, env=env)
         else:
             returncode = call(
                 ["npx", "-y", "pnpm", "install"],
                 cwd=TRANSPILE_CACHE_PATH,
+                env=env,
             )
         if returncode != 0:
             raise CommandError(
