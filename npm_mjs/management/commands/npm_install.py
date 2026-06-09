@@ -1,12 +1,15 @@
 import hashlib
+import importlib.util
 import json
 import os
+import pkgutil
 import shutil
 import time
 from shutil import which
 from subprocess import call
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
@@ -18,12 +21,64 @@ from npm_mjs.tools import get_last_run
 from npm_mjs.tools import set_last_run
 
 
+def _iter_package_dirs():
+    """Yield directories of installed packages to scan for package.json."""
+    namespaces = getattr(settings, "NPM_MJS_PACKAGE_NAMESPACES", None)
+
+    if namespaces is None:
+        # Default: scan all top-level packages
+        for _, modname, ispkg in pkgutil.iter_modules():
+            if not ispkg:
+                continue
+            spec = importlib.util.find_spec(modname)
+            if spec is None:
+                continue
+            if spec.origin:
+                package_dir = os.path.dirname(spec.origin)
+            elif spec.submodule_search_locations:
+                package_dir = list(spec.submodule_search_locations)[0]
+            else:
+                continue
+            if package_dir:
+                yield package_dir
+    else:
+        # Restricted: scan only specified namespace packages
+        for ns in namespaces:
+            try:
+                ns_module = importlib.import_module(ns)
+                ns_path = getattr(ns_module, "__path__", None)
+                if not ns_path:
+                    continue
+                for _, modname, ispkg in pkgutil.iter_modules(ns_path):
+                    if ispkg:
+                        spec = importlib.util.find_spec(f"{ns}.{modname}")
+                        if spec and spec.submodule_search_locations:
+                            yield list(spec.submodule_search_locations)[0]
+            except ImportError:
+                pass
+
+
+def get_package_dirs():
+    """Find directories of all Django apps and configured extra packages."""
+    dirs = set()
+
+    # Add all configured Django apps
+    for config in django_apps.get_app_configs():
+        dirs.add(config.path)
+
+    # Add extra packages
+    for package_dir in _iter_package_dirs():
+        dirs.add(package_dir)
+
+    return dirs
+
+
 def get_package_hash():
     """Generate a hash of all package.json files"""
     hash_md5 = hashlib.md5()
-    for config in django_apps.get_app_configs():
+    for package_dir in get_package_dirs():
         for filename in ["package.json", "package.json5"]:
-            filepath = os.path.join(config.path, filename)
+            filepath = os.path.join(package_dir, filename)
             if os.path.exists(filepath):
                 with open(filepath, "rb") as f:
                     hash_md5.update(f.read())

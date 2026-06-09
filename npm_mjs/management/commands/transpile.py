@@ -39,6 +39,8 @@ class InstalledAppDirectoriesFinder:
                 package_dir = list(spec.submodule_search_locations)[0]
             else:
                 continue
+            if not package_dir:
+                continue
             full_path = os.path.join(package_dir, "static", path)
             if os.path.isdir(full_path):
                 if all:
