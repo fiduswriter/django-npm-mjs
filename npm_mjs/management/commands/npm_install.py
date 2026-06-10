@@ -126,11 +126,33 @@ def install_npm(force, stdout, post_npm_signal=True):
                 env=env,
             )
         if returncode != 0:
-            raise CommandError(
-                "pnpm install failed with exit code %d. "
-                "If you see an ENOTEMPTY error, try clearing the npx cache: "
-                "rm -rf ~/.npm/_npx/" % returncode,
-            )
+            lockfile_path = os.path.join(TRANSPILE_CACHE_PATH, "pnpm-lock.yaml")
+            if os.path.exists(lockfile_path):
+                stdout.write(
+                    "pnpm install failed, removing outdated lockfile and retrying...",
+                )
+                os.remove(lockfile_path)
+                # Clear the hash cache so a later run doesn't skip install
+                if os.path.exists(cache_file):
+                    os.remove(cache_file)
+                if which("pnpm"):
+                    returncode = call(
+                        ["pnpm"] + pnpm_args,
+                        cwd=TRANSPILE_CACHE_PATH,
+                        env=env,
+                    )
+                else:
+                    returncode = call(
+                        ["npx", "-y", "pnpm"] + pnpm_args,
+                        cwd=TRANSPILE_CACHE_PATH,
+                        env=env,
+                    )
+            if returncode != 0:
+                raise CommandError(
+                    "pnpm install failed with exit code %d. "
+                    "If you see an ENOTEMPTY error, try clearing the npx cache: "
+                    "rm -rf ~/.npm/_npx/" % returncode,
+                )
 
         # Update cache
         with open(cache_file, "w") as f:
