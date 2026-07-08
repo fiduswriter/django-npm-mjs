@@ -105,24 +105,19 @@ def copy_missing_source_maps(out_dir, cache_path):
                 continue
             js_path = os.path.join(root, filename)
             with open(js_path, encoding="utf-8") as f:
-                f.seek(0, 2)
-                size = f.tell()
-                f.seek(max(0, size - 1024))
-                tail = f.read()
-            match = SOURCE_MAP_RE.search(tail)
-            if not match:
-                continue
-            map_filename = match.group(1)
-            if os.path.isabs(map_filename):
-                continue
-            map_path = os.path.join(root, map_filename)
-            if os.path.exists(map_path):
-                continue
-            # Only copy unambiguous source maps to avoid serving the wrong
-            # file for generic names such as index.js.map.
-            sources = available_maps.get(map_filename, [])
-            if len(sources) == 1:
-                shutil.copyfile(sources[0], map_path)
+                content = f.read()
+            for match in SOURCE_MAP_RE.finditer(content):
+                map_filename = match.group(1)
+                if os.path.isabs(map_filename):
+                    continue
+                map_path = os.path.join(root, map_filename)
+                if os.path.exists(map_path):
+                    continue
+                # Only copy unambiguous source maps to avoid serving the wrong
+                # file for generic names such as index.js.map.
+                sources = available_maps.get(map_filename, [])
+                if len(sources) == 1:
+                    shutil.copyfile(sources[0], map_path)
 
 
 # Run this script every time you update an *.mjs file or any of the
