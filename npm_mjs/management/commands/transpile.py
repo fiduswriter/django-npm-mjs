@@ -114,10 +114,26 @@ def copy_missing_source_maps(out_dir, cache_path):
                 if os.path.exists(map_path):
                     continue
                 # Only copy unambiguous source maps to avoid serving the wrong
-                # file for generic names such as index.js.map.
+                # file for generic names such as index.js.map. If multiple
+                # packages ship the same filename, copy only when their contents
+                # are identical (e.g. the same file referenced by two versions
+                # of one package).
                 sources = available_maps.get(map_filename, [])
                 if len(sources) == 1:
                     shutil.copyfile(sources[0], map_path)
+                elif len(sources) > 1 and _all_files_identical(sources):
+                    shutil.copyfile(sources[0], map_path)
+
+
+def _all_files_identical(paths):
+    """Return True if all files at the given paths have identical content."""
+    with open(paths[0], "rb") as first_file:
+        first_content = first_file.read()
+    for path in paths[1:]:
+        with open(path, "rb") as other_file:
+            if other_file.read() != first_content:
+                return False
+    return True
 
 
 # Run this script every time you update an *.mjs file or any of the
