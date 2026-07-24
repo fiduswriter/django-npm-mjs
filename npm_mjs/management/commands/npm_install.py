@@ -56,13 +56,25 @@ def install_npm(force, stdout, post_npm_signal=True):
         set_last_run("npm_install", int(round(time.time())))
         call_command("create_package_json")
 
-        # Write .npmrc with public-hoist-pattern if configured by the project.
+        # Write pnpm-workspace.yaml with publicHoistPattern if configured.
+        # Unlike .npmrc, pnpm-workspace.yaml is only read by pnpm, never by
+        # npm, so there are no "unknown config" warnings during postinstall.
         hoist_patterns = getattr(settings, "NPM_MJS_PUBLIC_HOIST_PATTERNS", None)
         if hoist_patterns:
-            npmrc_path = os.path.join(TRANSPILE_CACHE_PATH, ".npmrc")
-            with open(npmrc_path, "w") as f:
-                for pattern in hoist_patterns:
-                    f.write(f"public-hoist-pattern[]={pattern}\n")
+            workspace_path = os.path.join(TRANSPILE_CACHE_PATH, "pnpm-workspace.yaml")
+            if os.path.exists(workspace_path):
+                with open(workspace_path) as f:
+                    existing = f.read()
+                if "publicHoistPattern" not in existing:
+                    with open(workspace_path, "a") as f:
+                        f.write("\npublicHoistPattern:\n")
+                        for pattern in hoist_patterns:
+                            f.write(f'  - "{pattern}"\n')
+            else:
+                with open(workspace_path, "w") as f:
+                    f.write("publicHoistPattern:\n")
+                    for pattern in hoist_patterns:
+                        f.write(f'  - "{pattern}"\n')
 
         stdout.write("Installing dependencies...")
         node_modules_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules")
