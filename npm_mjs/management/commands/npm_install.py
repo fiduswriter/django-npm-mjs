@@ -6,6 +6,7 @@ import time
 from shutil import which
 from subprocess import call
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
@@ -54,6 +55,14 @@ def install_npm(force, stdout, post_npm_signal=True):
         os.makedirs(TRANSPILE_CACHE_PATH, exist_ok=True)
         set_last_run("npm_install", int(round(time.time())))
         call_command("create_package_json")
+
+        # Write .npmrc with public-hoist-pattern if configured by the project.
+        hoist_patterns = getattr(settings, "NPM_MJS_PUBLIC_HOIST_PATTERNS", None)
+        if hoist_patterns:
+            npmrc_path = os.path.join(TRANSPILE_CACHE_PATH, ".npmrc")
+            with open(npmrc_path, "w") as f:
+                for pattern in hoist_patterns:
+                    f.write(f"public-hoist-pattern[]={pattern}\n")
 
         stdout.write("Installing dependencies...")
         node_modules_path = os.path.join(TRANSPILE_CACHE_PATH, "node_modules")
