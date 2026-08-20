@@ -25,9 +25,29 @@ if (settings.DEBUG) {
 module.exports = {
     // eslint-disable-line no-undef
     mode: settings.DEBUG ? "development" : "production",
-    // module: {
-    //     rules: [] // [baseRule]
-    // },
+    module: {
+        rules: [
+            {
+                // TypeScript sources (e.g. in a Django app's static/js
+                // folder) are transpiled with the built-in SWC loader.
+                test: /\.tsx?$/,
+                use: [
+                    {
+                        loader: "builtin:swc-loader",
+                        options: {
+                            jsc: {
+                                parser: {
+                                    syntax: "typescript",
+                                    tsx: true
+                                },
+                                target: "es2020"
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    },
     output: {
         path: transpile.OUT_DIR,
         chunkFilename: transpile.VERSION + "-[id].js",
