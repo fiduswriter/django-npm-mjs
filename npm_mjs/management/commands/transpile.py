@@ -150,6 +150,19 @@ except OSError:
     pass
 
 
+# JavaScript and TypeScript source files. .mjs files are the entry points;
+# .ts/.tsx files can be imported from any .mjs entry.
+JS_EXTENSIONS = {".js", ".mjs", ".ts", ".tsx"}
+
+
+def get_source_files(path):
+    """Yield all JavaScript/TypeScript source files under ``path``."""
+    for root, _dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            if os.path.splitext(filename)[1].lower() in JS_EXTENSIONS:
+                yield os.path.join(root, filename)
+
+
 class Command(BaseCommand):
     help = (
         "Transpile ES2015+ JavaScript to ES5 JavaScript + include NPM " "dependencies"
@@ -223,13 +236,7 @@ class Command(BaseCommand):
                 .split("\n")[:-1]
             ):
                 mainfiles.append(mainfile)
-            for sourcefile in (
-                subprocess.check_output(
-                    ["find", path, "-type", "f", "-wholename", "*js"],
-                )
-                .decode("utf-8")
-                .split("\n")[:-1]
-            ):
+            for sourcefile in get_source_files(path):
                 if "static/js" in sourcefile:
                     sourcefiles.append(sourcefile)
                 if "static-libs/js" in sourcefile:

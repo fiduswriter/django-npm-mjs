@@ -8,6 +8,8 @@ class Command(CollectStaticCommand):
         return_value = super().set_options(*args, **options)
         self.ignore_patterns += [
             "js/*.mjs",
+            "js/*.ts",
+            "js/*.tsx",
             "js/modules/*",
             "js/plugins/*",
             "js/workers/*",

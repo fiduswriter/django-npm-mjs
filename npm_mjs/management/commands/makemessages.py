@@ -39,7 +39,14 @@ class Command(makemessages.Command, BaseCommand):
         ]
         if len(options["locale"]) == 0 and not options["all"]:
             options["all"] = True
+        # Django's djangojs domain only scans .js files by default; also
+        # extract gettext strings from TypeScript sources.
         if options["domain"]:
+            if options["domain"] == "djangojs":
+                options["extensions"] = (options["extensions"] or []) + [
+                    "ts",
+                    "tsx",
+                ]
             self.stdout.write("Domain %s" % options["domain"])
             return super().handle(*args, **options)
         else:
@@ -47,5 +54,6 @@ class Command(makemessages.Command, BaseCommand):
             self.stdout.write("Domain %s" % options["domain"])
             super().handle(*args, **options)
             options["domain"] = "djangojs"
+            options["extensions"] = (options["extensions"] or []) + ["ts", "tsx"]
             self.stdout.write("Domain %s" % options["domain"])
             super().handle(*args, **options)
