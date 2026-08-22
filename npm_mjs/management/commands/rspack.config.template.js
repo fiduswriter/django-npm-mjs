@@ -25,11 +25,22 @@ if (settings.DEBUG) {
 module.exports = {
     // eslint-disable-line no-undef
     mode: settings.DEBUG ? "development" : "production",
+    resolve: {
+        // Resolve extensionless imports to TypeScript sources as well, so
+        // that JS modules can be converted to TS by renaming them.
+        extensions: [".tsx", ".ts", ".jsx", ".js", ".mjs", ".json", ".wasm"],
+        extensionAlias: {
+            // Allow importing TS modules with a ".js" suffix (and without
+            // any extension) - common when converting JS sources to TS.
+            ".js": [".ts", ".tsx", ".jsx", ".js"]
+        }
+    },
     module: {
         rules: [
             {
-                // TypeScript sources (e.g. in a Django app's static/js
-                // folder) are transpiled with the built-in SWC loader.
+                // TypeScript sources (e.g. in a Django app's assets/js
+                // or assets/ts folder) are transpiled with the built-in
+                // SWC loader.
                 test: /\.tsx?$/,
                 use: [
                     {

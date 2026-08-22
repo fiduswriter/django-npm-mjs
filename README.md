@@ -47,7 +47,7 @@ Quick start
         )
 
 6. Load transpile, and use `static` template tags to your templates to refer to JavaScript files.
-All entry files to ES2015+ modules need to have \*.mjs endings. Entries can look like this::
+All entry files to ES2015+ modules need to have \*.mjs endings and are placed in one of the app's asset folders (`assets/js/` since version 5.0 — see below). Entries can look like this::
 
         {% load transpile %}
         ...
@@ -60,6 +60,53 @@ You can continue to load other resources such as CSS files as before using the `
 7. Run `./manage.py transpile`.
 
 8. Run `./manage.py runserver`. Your ES2015+ modules will be served as browser compatible JS files and all static files will have a versioned ending so that you can set your static server to let browsers cache static files indefinitely as long as DEBUG is set to False.
+
+
+Source files in the "assets" folder
+-----------------------------------
+
+Since version 5.0, JavaScript and TypeScript **source** files live in an
+`assets` folder inside each Django app, not in the `static` folder:
+
+* `assets/js/` — JavaScript sources (entry points are `*.mjs` files)
+* `assets/ts/` — TypeScript sources (`.ts`/`.tsx`, imported from any entry)
+
+The `static` folder is only used for **output**: the transpiled bundles are
+written to the project's `static-transpile/` folder (which you add to
+`STATICFILES_DIRS`), and files that require no transpilation (CSS, images,
+fonts) stay in the app's `static/` folder as usual.
+
+If a relative path exists both in `assets/ts/` and in `assets/js/` of the same
+app, the file from `assets/js/` takes precedence. As with static files, an app
+listed earlier in `INSTALLED_APPS` takes precedence over apps listed later.
+
+Migrating from 4.x to 5.x
+-------------------------
+
+1. Move all JavaScript/TypeScript sources out of your apps' `static/js/`
+   folders:
+
+   ```bash
+   mkdir -p myapp/assets
+   git mv myapp/static/js myapp/assets/js
+   # optionally split TypeScript modules into their own folder:
+   # git mv myapp/assets/ts myapp/assets/ts
+   ```
+
+2. Update cross-app imports that reached into another app's source tree via
+   the old path, e.g. `"../../otherapp/static/js/modules/x"` becomes
+   `"../../otherapp/assets/js/modules/x"`.
+3. Require `django-npm-mjs>=5.0`.
+4. Remove stale caches and rebuild:
+
+   ```bash
+   rm -rf .transpile static-transpile
+   python manage.py transpile --force
+   ```
+
+5. Note that third-party JS entry files previously placed in the project's
+   `static-libs/js/` folder are no longer picked up; generate them into an
+   app's `assets/js/` folder instead.
 
 
 NPM.JS dependencies
@@ -85,8 +132,8 @@ up automatically.
 ### How it works
 
 1. **Discovery at compile time** — `transpile` walks **all** Python packages on
-   `sys.path` and copies every `static/js/plugins/<type>/*.js` file into the
-   build cache. Files named `init.js` are ignored (they are legacy placeholders).
+   `sys.path` and copies every `assets/js/plugins/<type>/*.js` (or `.ts`) file
+   into the build cache. Files named `init.js` are ignored (they are legacy placeholders).
 
 2. **Index generation** — For each `<type>` directory the transpiler writes an
    `index.js` that imports every discovered module and exports them as a
@@ -132,12 +179,12 @@ server**.
 
 ### Writing a plugin
 
-Create a JavaScript file inside your Django app's
-`static/js/plugins/<type>/` directory (choose the hook point that matches your
+Create a JavaScript or TypeScript file inside your Django app's
+`assets/js/plugins/<type>/` directory (choose the hook point that matches your
 use case):
 
 ```js
-// my_plugin/static/js/plugins/app/my_plugin.js
+// my_plugin/assets/js/plugins/app/my_plugin.js
 export class MyPlugin {
     constructor(app) {
         this.app = app
@@ -152,8 +199,8 @@ export class MyPlugin {
 You can place files in multiple hook points if needed:
 
 ```
-my_plugin/static/js/plugins/app/my_plugin.js
-my_plugin/static/js/plugins/menu/my_plugin.js
+my_plugin/assets/js/plugins/app/my_plugin.js
+my_plugin/assets/js/plugins/menu/my_plugin.js
 ```
 
 Each exported class will be instantiated automatically when the containing app

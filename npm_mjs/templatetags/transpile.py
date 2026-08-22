@@ -16,7 +16,7 @@ register = template.Library()
 class StaticTranspileNode(StaticNode):
     @classmethod
     def handle_simple(cls, path):
-        path = re.sub(r"^js/(.*)\.mjs", r"js/\1.js", path)
+        path = re.sub(r"^js/(.*)\.(mjs|ts|tsx)$", r"js/\1.js", path)
         if apps.is_installed("django.contrib.staticfiles"):
             from django.contrib.staticfiles.storage import staticfiles_storage
 

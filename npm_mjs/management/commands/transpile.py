@@ -2,7 +2,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import time
 from subprocess import call
 from urllib.parse import urljoin
@@ -12,7 +11,6 @@ import pkgutil
 
 from django.apps import apps
 from django.conf import settings
-from django.contrib.staticfiles import finders as django_finders
 from django.core.management.base import BaseCommand
 from django.templatetags.static import PrefixNode
 
@@ -25,9 +23,24 @@ from npm_mjs.paths import TRANSPILE_CACHE_PATH
 from npm_mjs.tools import set_last_run
 
 
-class InstalledAppDirectoriesFinder:
+class AssetsDirectoriesFinder:
+    """Finds asset source directories in Django apps and Python packages.
+
+    Since version 5.0, JavaScript/TypeScript sources live in an "assets"
+    folder inside each app (assets/js/ and assets/ts/) rather than inside
+    the "static" folder. The static folders are only used for generated
+    output and for files that need no transpilation.
+    """
+
     def find(self, path, all=False):
         matches = []
+        checked = set()
+        package_dirs = set()
+        for config in apps.get_app_configs():
+            package_dirs.add(config.path)
+        # Also scan all top-level packages so that sources are found even in
+        # apps that are not in INSTALLED_APPS. This lets a single bundle be
+        # compiled before packaging while plugins are enabled at runtime.
         for _, modname, ispkg in pkgutil.iter_modules():
             if not ispkg:
                 continue
@@ -40,9 +53,13 @@ class InstalledAppDirectoriesFinder:
                 package_dir = list(spec.submodule_search_locations)[0]
             else:
                 continue
-            if not package_dir:
+            if package_dir:
+                package_dirs.add(package_dir)
+        for package_dir in package_dirs:
+            full_path = os.path.normpath(os.path.join(package_dir, "assets", path))
+            if full_path in checked:
                 continue
-            full_path = os.path.join(package_dir, "static", path)
+            checked.add(full_path)
             if os.path.isdir(full_path):
                 if all:
                     matches.append(full_path)
@@ -51,29 +68,7 @@ class InstalledAppDirectoriesFinder:
         return matches if all else None
 
 
-class AllAppsFinder:
-    def find(self, path, all=False):
-        django_matches = django_finders.find(path, all=all)
-        if all:
-            django_matches = list(django_matches) if django_matches else []
-        else:
-            return (
-                django_matches
-                if django_matches
-                else InstalledAppDirectoriesFinder().find(path, all=False)
-            )
-
-        installed_matches = InstalledAppDirectoriesFinder().find(path, all=True)
-        existing = set(django_matches)
-        for match in installed_matches:
-            if match not in existing:
-                django_matches.append(match)
-                existing.add(match)
-
-        return django_matches
-
-
-finders = AllAppsFinder()
+finders = AssetsDirectoriesFinder()
 
 SOURCE_MAP_RE = re.compile(r"//# sourceMappingURL=(\S+)")
 
@@ -154,6 +149,12 @@ except OSError:
 # .ts/.tsx files can be imported from any .mjs entry.
 JS_EXTENSIONS = {".js", ".mjs", ".ts", ".tsx"}
 
+# Asset folders inside each Django app that are scanned for sources. Listed
+# in reverse precedence order: the list is reversed below together with the
+# app order, so identically named files from "assets/js" are copied last and
+# take precedence over files from "assets/ts".
+ASSET_SUBFOLDERS = ["js", "ts"]
+
 
 def get_source_files(path):
     """Yield all JavaScript/TypeScript source files under ``path``."""
@@ -161,6 +162,16 @@ def get_source_files(path):
         for filename in filenames:
             if os.path.splitext(filename)[1].lower() in JS_EXTENSIONS:
                 yield os.path.join(root, filename)
+
+
+def get_mainfiles(path):
+    """Return all ``*.mjs`` entry point files under ``path``."""
+    mainfiles = []
+    for root, _dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            if filename.endswith(".mjs"):
+                mainfiles.append(os.path.join(root, filename))
+    return mainfiles
 
 
 class Command(BaseCommand):
@@ -184,7 +195,9 @@ class Command(BaseCommand):
             force = False
         start = int(round(time.time()))
         npm_install = install_npm(force, self.stdout)
-        js_paths = finders.find("js/", True)
+        js_paths = []
+        for asset_subfolder in ASSET_SUBFOLDERS:
+            js_paths.extend(finders.find(asset_subfolder + "/", True))
         # Remove paths inside of collection dir
         js_paths = [x for x in js_paths if not x.startswith(STATIC_ROOT)]
         # Reverse list so that overrides function as expected. Static file from
@@ -199,14 +212,21 @@ class Command(BaseCommand):
                 for root, _dirnames, filenames in os.walk(js_path):
                     for filename in filenames:
                         files.append(os.path.join(root, filename))
-            newest_file = max(files, key=os.path.getmtime)
-            if (
-                os.path.commonprefix([newest_file, transpile_path]) == transpile_path
-                and not npm_install
-                and not force
-            ):
-                # Transpile not needed as nothing has changed and not forced
-                return
+            out_dir = os.path.join(transpile_path, "js/")
+            if os.path.isdir(out_dir):
+                for root, _dirnames, filenames in os.walk(out_dir):
+                    for filename in filenames:
+                        files.append(os.path.join(root, filename))
+            if files:
+                newest_file = max(files, key=os.path.getmtime)
+                if (
+                    os.path.commonprefix([newest_file, transpile_path])
+                    == transpile_path
+                    and not npm_install
+                    and not force
+                ):
+                    # Transpile not needed as nothing has changed and not forced
+                    return
             # Remove any previously created static output dirs
             shutil.rmtree(transpile_path, ignore_errors=True)
         self.stdout.write("Transpiling...")
@@ -225,22 +245,24 @@ class Command(BaseCommand):
             )
 
         mainfiles = []
+        # Source files as (source_path, relative_path, django_app_name) tuples,
+        # relative to the app's assets/js or assets/ts folder.
         sourcefiles = []
-        lib_sourcefiles = []
         for path in js_paths:
-            for mainfile in (
-                subprocess.check_output(
-                    ["find", path, "-type", "f", "-name", "*.mjs", "-print"],
-                )
-                .decode("utf-8")
-                .split("\n")[:-1]
-            ):
+            # path is "<app dir>/assets/js" or "<app dir>/assets/ts" - the app
+            # name is the directory containing the assets folder.
+            django_app = os.path.basename(
+                os.path.dirname(os.path.dirname(os.path.normpath(path))),
+            )
+            for mainfile in get_mainfiles(path):
                 mainfiles.append(mainfile)
             for sourcefile in get_source_files(path):
-                if "static/js" in sourcefile:
-                    sourcefiles.append(sourcefile)
-                if "static-libs/js" in sourcefile:
-                    lib_sourcefiles.append(sourcefile)
+                relative_path = os.path.relpath(
+                    sourcefile,
+                    os.path.normpath(path),
+                ).replace(os.sep, "/")
+                sourcefiles.append((sourcefile, relative_path, django_app))
+
         # Collect all JavaScript in a temporary dir (similar to
         # ./manage.py collectstatic).
         # This allows for the modules to import from oneanother, across Django
@@ -255,10 +277,8 @@ class Command(BaseCommand):
         # files inside of them.
         plugin_dirs = {}
         plugin_names = []
-        for sourcefile in sourcefiles:
+        for [sourcefile, relative_path, django_app] in sourcefiles:
 
-            [base, relative_path] = sourcefile.split("static/js/")
-            django_app = base.split("/")[-2]
             outfile = os.path.join(cache_path, relative_path)
             cache_files.append(outfile)
             dirname = os.path.dirname(outfile)
@@ -273,19 +293,6 @@ class Command(BaseCommand):
                     if f"{dirname}/{django_app}/{module_name}" not in plugin_names:
                         plugin_dirs[dirname].append([django_app, module_name])
                         plugin_names.append(f"{dirname}/{django_app}/{module_name}")
-
-        for sourcefile in lib_sourcefiles:
-            relative_path = sourcefile.split("static-libs/js/")[1]
-            outfile = os.path.join(cache_path, relative_path)
-            cache_files.append(outfile)
-            dirname = os.path.dirname(outfile)
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-                shutil.copyfile(sourcefile, outfile)
-            elif not os.path.isfile(outfile):
-                shutil.copyfile(sourcefile, outfile)
-            elif os.path.getmtime(outfile) < os.path.getmtime(sourcefile):
-                shutil.copyfile(sourcefile, outfile)
 
         # Write an index.js file for every plugin dir
         for plugin_dir in plugin_dirs:
@@ -315,14 +322,12 @@ class Command(BaseCommand):
                     index_file.close()
 
         # Check for outdated files that should be removed
-        for existing_file in (
-            subprocess.check_output(["find", cache_path, "-type", "f"])
-            .decode("utf-8")
-            .split("\n")[:-1]
-        ):
-            if existing_file not in cache_files:
-                self.stdout.write("Removing %s" % existing_file)
-                os.remove(existing_file)
+        for root, _dirnames, filenames in os.walk(cache_path):
+            for filename in filenames:
+                existing_file = os.path.join(root, filename)
+                if existing_file not in cache_files:
+                    self.stdout.write("Removing %s" % existing_file)
+                    os.remove(existing_file)
         if apps.is_installed("django.contrib.staticfiles"):
             from django.contrib.staticfiles.storage import staticfiles_storage
 

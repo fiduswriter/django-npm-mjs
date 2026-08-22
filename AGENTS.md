@@ -35,6 +35,10 @@ pre-commit run --all-files
 - `django-npm-mjs` merges these into a single `package.json` in the
   `.transpile/` cache directory.
 - `pnpm install` is run in `.transpile/` to install dependencies.
+- Since version 5.0, JS/TS **sources** are read from each app's
+  `assets/js/` and `assets/ts/` folders (previously `static/js/`). The app's
+  `static/` folder is output-only territory (plus non-transpiled files such as
+  CSS/images).
 - `rspack` transpiles entry-point `*.mjs` files into
   `static-transpile/js/`.
 - After transpilation, missing third-party source maps are copied from
