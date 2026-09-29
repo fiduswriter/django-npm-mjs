@@ -32,7 +32,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         package = {}
-        for package_dir in get_package_dirs():
+        # Sort the discovered directories: deep_merge_dicts resolves
+        # conflicting dependency ranges by overwrite order, and the
+        # discovery set's iteration order varies per process, which made
+        # the merged package.json (and thus the pnpm lockfile check)
+        # non-deterministic.
+        for package_dir in sorted(get_package_dirs()):
             json5_package_path = os.path.join(package_dir, "package.json5")
             json_package_path = os.path.join(package_dir, "package.json")
             if os.path.isfile(json5_package_path):
